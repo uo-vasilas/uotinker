@@ -272,7 +272,23 @@ public static class SelfTest
         }
         edForm.Close();
 
-        var mon = new BodyAnimProvider(ctx, BodyMode.Monster);
+        var smallForm = new Form { Width = 420, Height = 360 };
+        var small = new TileEditor(tdp, ctx.Tile.LandCount + 0x0F43);
+        smallForm.Controls.Add(small);
+        smallForm.Show();
+        Application.DoEvents();
+        Application.DoEvents();
+        sb.AppendLine($"Editor klein: Client {small.ClientSize.Width}x{small.ClientSize.Height}, Scroll-Hoehe {small.VerticalScroll.Maximum}, Scrollbalken sichtbar={small.VerticalScroll.Visible}");
+        small.VerticalScroll.Value = small.VerticalScroll.Maximum - small.VerticalScroll.LargeChange + 1;
+        small.PerformLayout();
+        using (var sbm = new Bitmap(smallForm.Width, smallForm.Height))
+        {
+            smallForm.DrawToBitmap(sbm, new Rectangle(0, 0, sbm.Width, sbm.Height));
+            sbm.Save(Path.Combine(outDir, "editor_small_bottom.png"), ImageFormat.Png);
+        }
+        smallForm.Close();
+
+        var mon =new BodyAnimProvider(ctx, BodyMode.Monster);
         var itm = new BodyAnimProvider(ctx, BodyMode.ItemAnim);
         sb.AppendLine($"Monster-Tab: {mon.Summary}");
         sb.AppendLine($"Item-Anim-Tab: {itm.Summary}");

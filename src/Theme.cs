@@ -37,6 +37,10 @@ public static class Theme
     public static void DarkTitleBar(Form f)
     {
         int on = 1;
+        if (AppInfo.AppIcon != null)
+        {
+            f.Icon = AppInfo.AppIcon;
+        }
         DwmSetWindowAttribute(f.Handle, 20, ref on, sizeof(int));
         DwmSetWindowAttribute(f.Handle, 19, ref on, sizeof(int));
     }

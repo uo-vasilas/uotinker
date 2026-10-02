@@ -13,6 +13,21 @@ public static class AppInfo
     public const string License2 = "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.";
     public const string License3 = "You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. Contains code from ClassicUO under the BSD 2-Clause License (see THIRD-PARTY-NOTICES.md).";
 
+    public static readonly Icon? AppIcon = LoadIcon();
+
+    private static Icon? LoadIcon()
+    {
+        try
+        {
+            string? path = Environment.ProcessPath;
+            return path == null ? null : Icon.ExtractAssociatedIcon(path);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
     public static string Years
     {
         get

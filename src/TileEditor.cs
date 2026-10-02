@@ -122,6 +122,7 @@ public sealed class TileEditor : UserControl, IEditorControl
         Controls.Add(buttons);
         Controls.Add(flagPanel);
         Controls.Add(table);
+        EditorScroll.Attach(this);
 
         _name.TextChanged += (_, _) => Changed();
         _save.Click += (_, _) => DoSave();

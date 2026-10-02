@@ -73,6 +73,7 @@ public sealed class GraphicEditor : UserControl, IEditorControl
         Controls.Add(row1);
         Controls.Add(_info);
         Controls.Add(top);
+        EditorScroll.Attach(this);
 
         _import.Click += (_, _) => DoImport();
         _export.Click += (_, _) => DoExport();
