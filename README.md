@@ -126,4 +126,4 @@ Kopie deines Client-Ordners und schließe den Spielclient vor dem Speichern.
 
 ### Lizenz
 
-UOTinker steht unter der **GNU General Public License, Version 3 oder (nach deiner Wahl) jeder späteren Version** (siehe `LICENSE`). `src/BwtDecompress.cs` stammt aus ClassicUO (BSD 2-Clause), siehe `THIRD-PARTY-NOTICES.md`.
+UOTinker steht unter der **GNU General Public License, Version 3 oder einer späteren Version** (siehe `LICENSE`). `src/BwtDecompress.cs` stammt aus ClassicUO (BSD 2-Clause), siehe `THIRD-PARTY-NOTICES.md`.
