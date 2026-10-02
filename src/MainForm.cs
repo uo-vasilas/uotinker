@@ -1,4 +1,4 @@
-﻿using System.Drawing;
+using System.Drawing;
 
 namespace UOTinker;
 
@@ -134,7 +134,14 @@ public sealed class MainForm : Form
                 e.Cancel = true;
             }
         };
-        Shown += (_, _) => LoadAll();
+        Shown += (_, _) =>
+        {
+            LoadAll();
+            if (_settings.CheckUpdates)
+            {
+                _ = CheckForUpdatesAsync(false);
+            }
+        };
     }
 
     private void BuildSidebar()
@@ -219,6 +226,15 @@ public sealed class MainForm : Form
             _status.Text = ro.Checked ? "Schreibschutz aktiv: Es wird nichts geändert." : "Schreibschutz aus: Änderungen können gespeichert werden (mit Sicherung).";
         };
         m.Items.Add(ro);
+        m.Items.Add(new ToolStripSeparator());
+        m.Items.Add("Jetzt nach Updates suchen", null, async (_, _) => await CheckForUpdatesAsync(true));
+        var auto = new ToolStripMenuItem("Beim Start nach Updates suchen") { Checked = _settings.CheckUpdates, CheckOnClick = true };
+        auto.CheckedChanged += (_, _) =>
+        {
+            _settings.CheckUpdates = auto.Checked;
+            _settings.Save();
+        };
+        m.Items.Add(auto);
         m.Show(Cursor.Position);
     }
 
@@ -234,9 +250,73 @@ public sealed class MainForm : Form
     }
 
     private HelpForm? _help;
+    private UpdateInfo? _update;
+    private bool _skipConfirm;
+
+    private async Task CheckForUpdatesAsync(bool manual)
+    {
+        UpdateInfo? info;
+        try
+        {
+            info = await Updater.CheckAsync();
+        }
+        catch (Exception ex)
+        {
+            if (manual)
+            {
+                _status.Text = "Die Update-Prüfung ist fehlgeschlagen: " + ex.Message;
+            }
+            return;
+        }
+        _update = info;
+        if (info == null)
+        {
+            if (manual)
+            {
+                _status.Text = $"UOTinker {Updater.Current.ToString(3)} ist aktuell.";
+            }
+            return;
+        }
+        _status.Text = $"Neue Version {info.Version.ToString(3)} verfügbar (Übersicht: Jetzt aktualisieren).";
+        if (_ctx != null && _current == "overview")
+        {
+            Navigate("overview");
+        }
+    }
+
+    private async void StartUpdate()
+    {
+        var info = _update;
+        if (info == null)
+        {
+            return;
+        }
+        if (MessageBox.Show(this, $"UOTinker {info.Version.ToString(3)} laden und installieren?\nDas Programm wird dazu beendet.", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes || !ConfirmDiscard())
+        {
+            return;
+        }
+        UseWaitCursor = true;
+        try
+        {
+            var progress = new Progress<int>(p => _status.Text = $"Update wird geladen ... {p} %");
+            string path = await Updater.DownloadAsync(info, progress);
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
+            _skipConfirm = true;
+            Close();
+        }
+        catch (Exception ex)
+        {
+            UseWaitCursor = false;
+            _status.Text = "Das Update ist fehlgeschlagen: " + ex.Message;
+        }
+    }
 
     private bool ConfirmDiscard()
     {
+        if (_skipConfirm)
+        {
+            return true;
+        }
         int n = (_ctx?.Tile.Dirty.Count ?? 0) + (_ctx?.Art.ArtPendingCount ?? 0) + (_ctx?.Art.PendingGump.Count ?? 0);
         if (n == 0)
         {
@@ -632,6 +712,24 @@ public sealed class MainForm : Form
 
         root.Controls.Add(lower);
         root.Controls.Add(cards);
+        if (_update != null)
+        {
+            var banner = new Panel { Dock = DockStyle.Top, Height = 62, Padding = new Padding(0, 0, 0, 12), BackColor = Theme.Bg };
+            var inner = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Active, Padding = new Padding(16, 0, 8, 0) };
+            var go = Theme.FlatButton("Jetzt aktualisieren", true);
+            go.Dock = DockStyle.Right;
+            go.Width = 220;
+            go.Click += (_, _) => StartUpdate();
+            var text = new Label
+            {
+                Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Gold, Font = Theme.UiBold,
+                Text = $"Neue Version {_update.Version.ToString(3)} verfügbar (installiert: {Updater.Current.ToString(3)})",
+            };
+            inner.Controls.Add(text);
+            inner.Controls.Add(go);
+            banner.Controls.Add(inner);
+            root.Controls.Add(banner);
+        }
         Theme.Style(root);
         return root;
     }

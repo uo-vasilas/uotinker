@@ -11,6 +11,7 @@ public sealed class Settings
     public string SphereScripts { get; set; } = "";
     public int DisabledProblems { get; set; }
     public bool ReadOnly { get; set; }
+    public bool CheckUpdates { get; set; } = true;
 
     public static bool IsReadOnly;
 

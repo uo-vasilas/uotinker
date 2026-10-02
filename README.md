@@ -39,6 +39,7 @@ The user interface and the built-in help (F1) are currently in German.
 - Nothing is written until you save. Before every write a backup is made (outside the client folder, in `%APPDATA%\UOTinker\backups`)
 - Art and gump data are appended to the end of the file and only the index is rewritten, so existing data stays untouched
 - A read-only switch in the settings menu turns writing off completely
+- Update check: on start the program asks GitHub for the latest release and offers a one-click update; the installer's SHA-256 checksum is verified before it is started (can be switched off in the settings menu)
 
 **Optional: Sphere scripts**
 

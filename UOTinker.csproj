@@ -9,7 +9,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <AssemblyName>UOTinker</AssemblyName>
     <RootNamespace>UOTinker</RootNamespace>
-    <Version>0.1.0</Version>
+    <Version>0.1.1</Version>
     <Product>UOTinker</Product>
     <ApplicationIcon>Setup\Icons\UOTinker.ico</ApplicationIcon>
     <Copyright>GPL v3 or later - Daniel Kowarek</Copyright>

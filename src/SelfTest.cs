@@ -288,7 +288,34 @@ public static class SelfTest
         }
         smallForm.Close();
 
-        var mon =new BodyAnimProvider(ctx, BodyMode.Monster);
+        try
+        {
+            var newer = Updater.CheckAsync().GetAwaiter().GetResult();
+            sb.AppendLine($"Update-Pruefung: installiert {Updater.Current}, neuer={(newer == null ? "nein" : newer.Version.ToString())}");
+            var latest = Updater.CheckAsync(false).GetAwaiter().GetResult();
+            if (latest != null)
+            {
+                string dl = Updater.DownloadAsync(latest, new Progress<int>(_ => { })).GetAwaiter().GetResult();
+                sb.AppendLine($"Update-Download: {latest.Tag} {latest.Name} {new FileInfo(dl).Length} Bytes, Pruefsumme ok");
+                File.Delete(dl);
+                latest.Sha256 = new string('0', 64);
+                try
+                {
+                    Updater.DownloadAsync(latest, new Progress<int>(_ => { })).GetAwaiter().GetResult();
+                    sb.AppendLine("Update-Falschsumme: NICHT abgelehnt");
+                }
+                catch (InvalidOperationException)
+                {
+                    sb.AppendLine("Update-Falschsumme: abgelehnt, Datei geloescht=" + !File.Exists(Path.Combine(Path.GetTempPath(), latest.Name)));
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            sb.AppendLine("Update-Test Fehler: " + ex.Message);
+        }
+
+        var mon = new BodyAnimProvider(ctx, BodyMode.Monster);
         var itm = new BodyAnimProvider(ctx, BodyMode.ItemAnim);
         sb.AppendLine($"Monster-Tab: {mon.Summary}");
         sb.AppendLine($"Item-Anim-Tab: {itm.Summary}");

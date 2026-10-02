@@ -5,8 +5,9 @@ namespace UOTinker;
 
 public static class AppInfo
 {
-    public const string Version = "0.1";
+    public const string Version = "0.1.1";
     public const string Author = "Daniel Kowarek";
+    public const string Repo = "uo-vasilas/uotinker";
     public const string DonateUrl = "https://ko-fi.com/uoschattenwelt";
 
     public const string License1 = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.";
