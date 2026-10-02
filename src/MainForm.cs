@@ -1,0 +1,764 @@
+﻿using System.Drawing;
+
+namespace UOTinker;
+
+public sealed class PageDef
+{
+    public string Key = "";
+    public string Group = "";
+    public string Title = "";
+    public string Glyph = "";
+    public string Subtitle = "";
+    public Func<Control> Factory = null!;
+}
+
+public sealed class SubTabHost : UserControl
+{
+    private readonly FlowLayoutPanel _bar = new() { Dock = DockStyle.Top, AutoSize = true, Padding = new Padding(0, 0, 0, 8), WrapContents = true };
+    private readonly Panel _body = new() { Dock = DockStyle.Fill };
+    private readonly List<(Button btn, Func<Control> factory, Control? ctl)> _tabs = new();
+    private int _active = -1;
+
+    public SubTabHost()
+    {
+        BackColor = Theme.Bg;
+        Controls.Add(_body);
+        Controls.Add(_bar);
+    }
+
+    public void Add(string title, Func<Control> factory)
+    {
+        var b = Theme.FlatButton(title);
+        b.Height = 30;
+        b.AutoSize = true;
+        b.Margin = new Padding(0, 0, 6, 4);
+        int idx = _tabs.Count;
+        b.Click += (_, _) => Select(idx);
+        _bar.Controls.Add(b);
+        _tabs.Add((b, factory, null));
+    }
+
+    public void Select(int idx)
+    {
+        if (idx < 0 || idx >= _tabs.Count)
+        {
+            return;
+        }
+        var (btn, factory, ctl) = _tabs[idx];
+        if (ctl == null)
+        {
+            ctl = factory();
+            ctl.Dock = DockStyle.Fill;
+            _body.Controls.Add(ctl);
+            _tabs[idx] = (btn, factory, ctl);
+        }
+        for (int i = 0; i < _tabs.Count; i++)
+        {
+            bool on = i == idx;
+            _tabs[i].btn.BackColor = on ? Theme.Active : Theme.Button;
+            _tabs[i].btn.ForeColor = on ? Theme.Gold : Theme.Text;
+            _tabs[i].btn.FlatAppearance.BorderColor = on ? Theme.Gold : Theme.Line;
+            if (_tabs[i].ctl != null)
+            {
+                _tabs[i].ctl!.Visible = on;
+            }
+        }
+        ctl.BringToFront();
+        _active = idx;
+    }
+
+    public Control? ActiveControl_ => _active >= 0 ? _tabs[_active].ctl : null;
+}
+
+public sealed class MainForm : Form
+{
+    private const string Version = AppInfo.Version;
+
+    private readonly Settings _settings = Settings.Load();
+    private readonly Panel _sidebar = new() { Dock = DockStyle.Left, Width = 232, BackColor = Theme.Sidebar };
+    private readonly Panel _nav = new() { Dock = DockStyle.Fill, BackColor = Theme.Sidebar, AutoScroll = true };
+    private readonly Panel _content = new() { Dock = DockStyle.Fill, BackColor = Theme.Bg };
+    private readonly Panel _header = new() { Dock = DockStyle.Top, Height = 104, BackColor = Theme.Bg };
+    private readonly Label _title = new() { AutoSize = true, Font = Theme.Heading, ForeColor = Theme.Text, Location = new Point(26, 24), BackColor = Color.Transparent };
+    private readonly Label _subtitle = new() { AutoSize = true, Font = Theme.Ui, ForeColor = Theme.Muted, Location = new Point(28, 66), BackColor = Color.Transparent };
+    private readonly FlowLayoutPanel _actions = new() { Dock = DockStyle.Right, Width = 700, FlowDirection = FlowDirection.RightToLeft, Padding = new Padding(0, 22, 26, 0), BackColor = Theme.Bg };
+    private readonly Panel _body = new() { Dock = DockStyle.Fill, BackColor = Theme.Bg, Padding = new Padding(26, 0, 26, 12) };
+    private readonly Label _status = new() { Dock = DockStyle.Bottom, Height = 26, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Muted, Padding = new Padding(26, 0, 0, 0), BackColor = Theme.Bg };
+
+    private readonly List<PageDef> _pages = new();
+    private readonly Dictionary<string, NavButton> _navButtons = new();
+    private readonly Dictionary<string, Control> _pageControls = new();
+    private readonly List<(string page, string text, int key)> _history = new();
+    private string _current = "";
+    private Context? _ctx;
+    private BodyAnimProvider? _monster;
+    private BodyAnimProvider? _itemAnim;
+    private TiledataProvider? _tiledata;
+    private Control? _overview;
+
+    public MainForm()
+    {
+        Text = $"UO Tinker Version {Version} - F1 für Hilfe";
+        Width = 1560;
+        Height = 920;
+        MinimumSize = new Size(1100, 700);
+        StartPosition = FormStartPosition.CenterScreen;
+        BackColor = Theme.Bg;
+        ForeColor = Theme.Text;
+        Font = Theme.Ui;
+        KeyPreview = true;
+
+        BuildSidebar();
+
+        _header.Controls.Add(_actions);
+        _header.Controls.Add(_subtitle);
+        _header.Controls.Add(_title);
+        _content.Controls.Add(_body);
+        _content.Controls.Add(_status);
+        _content.Controls.Add(_header);
+        Controls.Add(_content);
+        Controls.Add(_sidebar);
+
+        KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.F1)
+            {
+                ShowHelp();
+            }
+        };
+        HandleCreated += (_, _) => Theme.DarkTitleBar(this);
+        FormClosing += (_, e) =>
+        {
+            if (!ConfirmDiscard())
+            {
+                e.Cancel = true;
+            }
+        };
+        Shown += (_, _) => LoadAll();
+    }
+
+    private void BuildSidebar()
+    {
+        var logo = new Panel { Dock = DockStyle.Top, Height = 78, BackColor = Theme.Sidebar };
+        logo.Paint += (_, e) =>
+        {
+            var g = e.Graphics;
+            g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            using var gold = new SolidBrush(Theme.Gold);
+            using var dark = new SolidBrush(Theme.Sidebar);
+            using var ring = new Pen(Theme.Gold, 2);
+            var r = new Rectangle(16, 24, 28, 28);
+            g.DrawEllipse(ring, r);
+            g.FillPolygon(gold, new[] { new Point(30, 29), new Point(38, 38), new Point(30, 47), new Point(22, 38) });
+            g.FillPolygon(dark, new[] { new Point(30, 33), new Point(34, 38), new Point(30, 43), new Point(26, 38) });
+            TextRenderer.DrawText(g, "UO Tinker", new Font("Georgia", 12.5f, FontStyle.Bold), new Point(54, 26), Theme.Text);
+            using var pen = new Pen(Theme.Line);
+            g.DrawLine(pen, 0, logo.Height - 1, logo.Width, logo.Height - 1);
+        };
+
+        var bottom = new Panel { Dock = DockStyle.Bottom, Height = 54, BackColor = Theme.Sidebar };
+        bottom.Paint += (_, e) =>
+        {
+            using var pen = new Pen(Theme.Line);
+            e.Graphics.DrawLine(pen, 0, 0, bottom.Width, 0);
+        };
+        var icons = new (string glyph, string tip, Action act)[]
+        {
+            ("⚙", "Ordner wählen", () => ShowFolderMenu()),
+            ("↻", "Neu laden", () => LoadAll()),
+            ("?", "Hilfe (F1)", () => ShowHelp()),
+            ("ⓘ", "Über UOTinker", () =>
+            {
+                using var about = new AboutForm();
+                about.ShowDialog(this);
+            }),
+            ("♥", "UOTinker unterstützen (Ko-fi)", () => AppInfo.OpenDonate()),
+            ("⏻", "Beenden", () => Close()),
+        };
+        var tt = new ToolTip();
+        for (int i = 0; i < icons.Length; i++)
+        {
+            var (glyph, tip, act) = icons[i];
+            var l = new Label
+            {
+                Text = glyph, Font = new Font("Segoe UI Symbol", 12f), ForeColor = Theme.Muted, BackColor = Theme.Sidebar,
+                Size = new Size(38, 54), Location = new Point(i * 38, 0), TextAlign = ContentAlignment.MiddleCenter, Cursor = Cursors.Hand,
+            };
+            l.MouseEnter += (_, _) => l.ForeColor = Theme.Gold;
+            l.MouseLeave += (_, _) => l.ForeColor = Theme.Muted;
+            l.Click += (_, _) => act();
+            tt.SetToolTip(l, tip);
+            bottom.Controls.Add(l);
+        }
+
+        var edge = new Panel { Dock = DockStyle.Right, Width = 1, BackColor = Theme.Line };
+        _sidebar.Controls.Add(_nav);
+        _sidebar.Controls.Add(bottom);
+        _sidebar.Controls.Add(logo);
+        _sidebar.Controls.Add(edge);
+    }
+
+    private void ShowFolderMenu()
+    {
+        var m = new ContextMenuStrip { BackColor = Theme.Card, ForeColor = Theme.Text, ShowImageMargin = false };
+        m.Items.Add("Datenordner wählen ...", null, (_, _) => ChooseFolder(true));
+        m.Items.Add("Sphere-Skriptordner wählen (optional) ...", null, (_, _) => ChooseFolder(false));
+        m.Items.Add("Sphere-Skriptordner nicht verwenden", null, (_, _) =>
+        {
+            _settings.SphereScripts = "";
+            _settings.Save();
+            LoadAll();
+        });
+        m.Items.Add(new ToolStripSeparator());
+        var ro = new ToolStripMenuItem("Schreibschutz (nichts ändern)") { Checked = _settings.ReadOnly, CheckOnClick = true };
+        ro.CheckedChanged += (_, _) =>
+        {
+            _settings.ReadOnly = ro.Checked;
+            Settings.IsReadOnly = ro.Checked;
+            _settings.Save();
+            _status.Text = ro.Checked ? "Schreibschutz aktiv: Es wird nichts geändert." : "Schreibschutz aus: Änderungen können gespeichert werden (mit Sicherung).";
+        };
+        m.Items.Add(ro);
+        m.Show(Cursor.Position);
+    }
+
+    private void ShowHelp()
+    {
+        if (_help == null || _help.IsDisposed)
+        {
+            _help = new HelpForm();
+            _help.Show(this);
+        }
+        _help.Open(_current is "" or "overview" ? "welcome" : _current);
+        _help.Activate();
+    }
+
+    private HelpForm? _help;
+
+    private bool ConfirmDiscard()
+    {
+        int n = (_ctx?.Tile.Dirty.Count ?? 0) + (_ctx?.Art.ArtPendingCount ?? 0) + (_ctx?.Art.PendingGump.Count ?? 0);
+        if (n == 0)
+        {
+            return true;
+        }
+        return MessageBox.Show(this, $"{n} ungespeicherte Änderung(en) an Tiledata oder Art gehen verloren. Trotzdem fortfahren?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+    }
+
+    private void ChooseFolder(bool data)
+    {
+        using var dlg = new FolderBrowserDialog { SelectedPath = data ? _settings.DataFolder : _settings.SphereScripts };
+        if (dlg.ShowDialog(this) == DialogResult.OK)
+        {
+            if (data)
+            {
+                _settings.DataFolder = dlg.SelectedPath;
+            }
+            else
+            {
+                _settings.SphereScripts = dlg.SelectedPath;
+            }
+            _settings.Save();
+            LoadAll();
+        }
+    }
+
+    private async void LoadAll()
+    {
+        if (!ConfirmDiscard())
+        {
+            return;
+        }
+        if (!Directory.Exists(_settings.DataFolder))
+        {
+            using var dlg = new FolderBrowserDialog { Description = "Ordner mit den Ultima-Online-Dateien wählen (art.mul, tiledata.mul, hues.mul ...)", UseDescriptionForTitle = true };
+            if (dlg.ShowDialog(this) != DialogResult.OK)
+            {
+                _status.Text = "Kein Datenordner gewählt. Zahnrad unten links: Datenordner wählen.";
+                return;
+            }
+            _settings.DataFolder = dlg.SelectedPath;
+            _settings.Save();
+        }
+        _body.Visible = false;
+        _status.Text = $"Lade {_settings.DataFolder} ...";
+        UseWaitCursor = true;
+        foreach (var c in _pageControls.Values)
+        {
+            c.Dispose();
+        }
+        _pageControls.Clear();
+        _body.Controls.Clear();
+        _overview = null;
+        _history.Clear();
+        _current = "";
+
+        Context ctx;
+        try
+        {
+            ctx = await Task.Run(() =>
+            {
+                var c = Context.Load(_settings);
+                _monster = new BodyAnimProvider(c, BodyMode.Monster);
+                _itemAnim = new BodyAnimProvider(c, BodyMode.ItemAnim);
+                _tiledata = new TiledataProvider(c);
+                return c;
+            });
+        }
+        catch (Exception ex)
+        {
+            UseWaitCursor = false;
+            _status.Text = "Fehler beim Laden: " + ex.Message;
+            return;
+        }
+        _ctx = ctx;
+        UseWaitCursor = false;
+        BuildPages(ctx);
+        AppNav.Request = (page, key) => BeginInvoke(() => Navigate(page, b => b.JumpTo(key)));
+        BuildNav();
+        _body.Visible = true;
+        _status.Text = $"Datenordner: {_settings.DataFolder}{(ctx.Catalog.FileCount > 0 ? $"   |   Sphere-Skripte: {ctx.Catalog.FileCount} Dateien" : "")}   |   Tiledata: {(ctx.Tile.Loaded ? "ok" : "NICHT geladen")}   |   UOP-Einträge: {ctx.Anim.Uop.Entries.Count}";
+        Navigate(StartPage);
+        StartPage = "overview";
+    }
+
+    public static string StartPage { get; set; } = "overview";
+
+    private void BuildPages(Context ctx)
+    {
+        _pages.Clear();
+        void Add(string key, string group, string title, string glyph, string sub, Func<Control> factory) =>
+            _pages.Add(new PageDef { Key = key, Group = group, Title = title, Glyph = glyph, Subtitle = sub, Factory = factory });
+
+        Add("overview", "ÜBERSICHT", "Übersicht", "▦", "", () => BuildOverview(ctx));
+        Add("art", "GRAFIK", "Items (Art)", "◈", "Alle Item-Grafiken aus art.mul bis zur höchsten ID, auch freie Slots.", () => Browser("art", new ArtProvider(ctx)));
+        Add("land", "GRAFIK", "Landtiles", "◢", "Bodenkacheln (Index 0 bis 0x3FFF in art.mul).", () => Browser("land", new LandProvider(ctx)));
+        Add("gump", "GRAFIK", "Gumps", "▣", "Alle Gumps aus gumpart.mul bis zur höchsten ID, auch freie Slots.", () => Browser("gump", new GumpProvider(ctx)));
+        Add("radar", "GRAFIK", "Radarcolor", "◉", "Radarfarben je Land- und Item-Grafik (radarcol.mul).", () => Browser("radar", new RadarProvider(ctx)));
+        Add("hues", "GRAFIK", "Hues", "◐", "Alle Farben aus hues.mul mit je 32 Farbwerten.", () => Browser("hues", new HuesProvider(ctx)));
+        Add("monster", "ANIMATIONEN", "Bodies / Monster", "☠", "Alle Bodies mit Quellen aus anim.mul bis anim6.mul, bodyconv.def, body.def und UOP.", () => Browser("monster", _monster!));
+        Add("itemanim", "ANIMATIONEN", "Item-AnimIDs", "⚔", "Animations-IDs, die Items in der Tiledata benutzen, mit Paperdoll-Gumps.", () => Browser("itemanim", _itemAnim!));
+        Add("raw", "ANIMATIONEN", "Rohdateien", "☰", "Jede Animationsdatei einzeln, ohne body.def und bodyconv.def.", () =>
+        {
+            var h = new SubTabHost();
+            for (int f = 0; f < 6; f++)
+            {
+                int file = f;
+                if (ctx.Anim.Pos[file] != null)
+                {
+                    h.Add(AnimStore.FileNames[file] + ".mul", () => Browser("raw", new RawAnimProvider(ctx, file)));
+                }
+            }
+            if (ctx.Anim.Uop.Files.Count > 0)
+            {
+                h.Add("UOP (" + string.Join(", ", ctx.Anim.Uop.Files.Select(x => x.Replace("AnimationFrame", "").Replace(".uop", ""))) + ")", () => Browser("raw", new RawAnimProvider(ctx, -1)));
+            }
+            h.Select(0);
+            return h;
+        });
+        Add("tiledata", "DATEN", "Tiledata", "▤", "Name, Flags und Eigenschaften aller Land- und Item-Kacheln.", () => Browser("tiledata", _tiledata!));
+        Add("itemdef", "DATEN", "Sphere-ITEMDEF", "≣", "Alle ITEMDEFs der Sphere-Skripte mit Item-ID, Tiledata-Name und Problemen.", () => Browser("itemdef", new ItemDefProvider(ctx)));
+        Add("skills", "DATEN", "Skills", "✦", "Skill-Tabelle (skills.idx/skills.mul).", () => Browser("skills", new SkillsProvider(ctx)));
+        Add("cliloc", "DATEN", "Cliloc", "✎", "Clientsprache: Textnummern und Texte je Sprache.", () =>
+        {
+            var h = new SubTabHost();
+            foreach (var f in Directory.GetFiles(ctx.Folder, "cliloc.*").Where(x => !x.Contains(".bak", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x))
+            {
+                string path = f;
+                h.Add(Path.GetFileName(f), () => Browser("cliloc", new ClilocProvider(path)));
+            }
+            h.Select(0);
+            return h;
+        });
+    }
+
+    private BrowserControl Browser(string pageKey, IProvider p)
+    {
+        var b = new BrowserControl(p);
+        b.Viewed += (text, key) => AddHistory(pageKey, text, key);
+        return b;
+    }
+
+    private void AddHistory(string page, string text, int key)
+    {
+        if (text.Length == 0)
+        {
+            return;
+        }
+        _history.RemoveAll(h => h.page == page && h.key == key);
+        _history.Insert(0, (page, text, key));
+        if (_history.Count > 20)
+        {
+            _history.RemoveAt(_history.Count - 1);
+        }
+    }
+
+    private void BuildNav()
+    {
+        _nav.Controls.Clear();
+        _navButtons.Clear();
+        string group = "";
+        var items = new List<Control>();
+        foreach (var pg in _pages)
+        {
+            if (pg.Group != group)
+            {
+                group = pg.Group;
+                items.Add(new Label
+                {
+                    Text = group, Font = Theme.Small, ForeColor = Theme.Muted, BackColor = Theme.Sidebar, Height = 30,
+                    TextAlign = ContentAlignment.BottomLeft, Padding = new Padding(18, 0, 0, 6),
+                });
+            }
+            var nb = new NavButton { Text = pg.Title, Glyph = pg.Glyph, Height = 35 };
+            string key = pg.Key;
+            nb.Click += (_, _) => Navigate(key);
+            _navButtons[key] = nb;
+            items.Add(nb);
+        }
+        for (int i = items.Count - 1; i >= 0; i--)
+        {
+            items[i].Dock = DockStyle.Top;
+            _nav.Controls.Add(items[i]);
+        }
+    }
+
+    public void Navigate(string key, Action<BrowserControl>? setup = null)
+    {
+        var pg = _pages.FirstOrDefault(p => p.Key == key);
+        if (pg == null)
+        {
+            return;
+        }
+
+        if (key == "overview")
+        {
+            if (_overview != null && _pageControls.ContainsKey("overview"))
+            {
+                _body.Controls.Remove(_pageControls["overview"]);
+                _pageControls["overview"].Dispose();
+                _pageControls.Remove("overview");
+            }
+        }
+
+        if (!_pageControls.TryGetValue(key, out var ctl))
+        {
+            UseWaitCursor = true;
+            try
+            {
+                ctl = pg.Factory();
+            }
+            catch (Exception ex)
+            {
+                ctl = new TextBox { Multiline = true, ReadOnly = true, Text = "Fehler: " + ex };
+            }
+            finally
+            {
+                UseWaitCursor = false;
+            }
+            if (key != "overview")
+            {
+                var card = new CardPanel { Padding = new Padding(1) };
+                ctl.Dock = DockStyle.Fill;
+                card.Controls.Add(ctl);
+                ctl = card;
+            }
+            ctl.Dock = DockStyle.Fill;
+            _body.Controls.Add(ctl);
+            _pageControls[key] = ctl;
+        }
+
+        foreach (var c in _pageControls.Values)
+        {
+            c.Visible = c == ctl;
+        }
+        ctl.BringToFront();
+        _current = key;
+
+        foreach (var (k, nb) in _navButtons)
+        {
+            nb.IsActive = k == key;
+            nb.Invalidate();
+        }
+
+        _actions.Controls.Clear();
+        if (key == "overview")
+        {
+            _title.Text = Greeting();
+            _subtitle.Text = "UO Tinker - Betrachter und Editor für die Dateien deines Ultima-Online-Clients";
+            var reload = Theme.FlatButton("Neu laden", true);
+            reload.Width = 190;
+            reload.Click += (_, _) => LoadAll();
+            var choose = Theme.FlatButton("Datenordner wählen");
+            choose.Width = 190;
+            choose.Click += (_, _) => ChooseFolder(true);
+            var pill = new Label
+            {
+                Text = "  ●  " + new DirectoryInfo(_settings.DataFolder).Name, ForeColor = Theme.Text, BackColor = Theme.Active,
+                Height = 36, Width = 210, TextAlign = ContentAlignment.MiddleLeft,
+            };
+            _actions.Controls.Add(reload);
+            _actions.Controls.Add(choose);
+            _actions.Controls.Add(pill);
+        }
+        else
+        {
+            _title.Text = pg.Title;
+            _subtitle.Text = pg.Subtitle;
+        }
+
+        if (setup != null)
+        {
+            var b = FindBrowser(ctl);
+            if (b != null)
+            {
+                setup(b);
+            }
+        }
+    }
+
+    private static BrowserControl? FindBrowser(Control c)
+    {
+        if (c is BrowserControl b)
+        {
+            return b;
+        }
+        if (c is SubTabHost sh && sh.ActiveControl_ != null)
+        {
+            return FindBrowser(sh.ActiveControl_);
+        }
+        foreach (Control ch in c.Controls)
+        {
+            var r = FindBrowser(ch);
+            if (r != null)
+            {
+                return r;
+            }
+        }
+        return null;
+    }
+
+    private static string Greeting()
+    {
+        int h = DateTime.Now.Hour;
+        return h >= 5 && h < 11 ? "Guten Morgen" : h >= 11 && h < 17 ? "Guten Tag" : "Guten Abend";
+    }
+
+    private Control BuildOverview(Context ctx)
+    {
+        int artUsed = Enumerable.Range(0, ctx.Art.StaticCount).Count(i => ctx.Art.StaticValid(i));
+        int gumpUsed = Enumerable.Range(0, ctx.Art.GumpIdx.Count).Count(i => ctx.Art.GumpIdx.Valid(i));
+        var mon = _monster!;
+
+        var root = new Panel { BackColor = Theme.Bg };
+        var td = _tiledata!;
+        int gaps = td.EntriesWithProblem(true);
+        var gapCounts = td.ProblemCounts(true);
+        var cards = new TableLayoutPanel { Dock = DockStyle.Top, Height = 150, ColumnCount = 6, RowCount = 1, BackColor = Theme.Bg, Padding = new Padding(0, 0, 0, 0) };
+        for (int i = 0; i < 6; i++)
+        {
+            cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6));
+        }
+        cards.Controls.Add(StatCard("ITEM-ART", artUsed.ToString("N0"), $"belegt von {ctx.Art.StaticCount:N0} Slots, {ctx.Art.StaticCount - artUsed:N0} frei", Theme.Gold), 0, 0);
+        cards.Controls.Add(StatCard("GUMPS", gumpUsed.ToString("N0"), $"belegt von {ctx.Art.GumpIdx.Count:N0} Slots, {ctx.Art.GumpIdx.Count - gumpUsed:N0} frei", Theme.Gold), 1, 0);
+        cards.Controls.Add(StatCard("ANIMATIONEN", mon.UsedCount.ToString("N0"), $"Bodies mit Animation, davon {mon.UopOnlyCount:N0} nur in UOP", Theme.Gold), 2, 0);
+        cards.Controls.Add(StatCard("OHNE ANIMATION", mon.MissingCount.ToString("N0"), "Chardefs ohne Animationsdaten", mon.MissingCount > 0 ? Theme.Red : Theme.Green), 3, 0);
+        cards.Controls.Add(StatCard("ITEMS MIT LÜCKEN", gaps.ToString("N0"), $"{gapCounts[0]:N0} ohne Tiledata, {gapCounts[1]:N0} ohne Art, {gapCounts[2] + gapCounts[3] + gapCounts[4]:N0} Anim (Klick)", gaps > 0 ? Theme.Red : Theme.Green,
+            () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter("Typ", 2); b.SetFilter("Problem", 1); })), 4, 0);
+        cards.Controls.Add(StatCard("SPHERE-KATALOG", ctx.Catalog.Chars.Count.ToString("N0"), $"Body-Nummern mit CHARDEF, {ctx.Catalog.Items.Count:N0} mit ITEMDEF", Theme.Gold), 5, 0);
+
+        var lower = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, BackColor = Theme.Bg, Padding = new Padding(0, 16, 0, 0) };
+        lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
+        lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
+        lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
+
+        var files = SimpleList(new[] { "Datei", "Größe", "Inhalt" }, new[] { 150, 80, 200 });
+        foreach (var (name, info) in FileInfos(ctx))
+        {
+            string path = Path.Combine(ctx.Folder, name);
+            string size = File.Exists(path) ? FormatSize(new FileInfo(path).Length) : "fehlt";
+            files.Items.Add(new ListViewItem(new[] { name, size, info }));
+        }
+        lower.Controls.Add(Panel_("Dateien im Datenordner", files), 0, 0);
+
+        var hist = SimpleList(new[] { "Zuletzt angesehen" }, new[] { 380 });
+        foreach (var h in _history)
+        {
+            var pg = _pages.First(p => p.Key == h.page);
+            hist.Items.Add(new ListViewItem($"{h.text}   ·   {pg.Title}") { Tag = h });
+        }
+        hist.DoubleClick += (_, _) =>
+        {
+            if (hist.SelectedItems.Count > 0 && hist.SelectedItems[0].Tag is ValueTuple<string, string, int> h)
+            {
+                Navigate(h.Item1, b => b.GoToKey(h.Item3));
+            }
+        };
+        lower.Controls.Add(Panel_("Zuletzt angesehen", hist, "Doppelklick öffnet den Eintrag erneut."), 1, 0);
+
+        var quick = SimpleList(new[] { "Schnellaktionen" }, new[] { 380 });
+        var gapActions = new List<(string text, Action act)>();
+        var gapLabels = TiledataProvider.ProblemLabels;
+        for (int k = 0; k < gapLabels.Count; k++)
+        {
+            int opt = 3 + k;
+            if (gapCounts[k] > 0)
+            {
+                gapActions.Add(($"Tiledata: {gapLabels[k]} ({gapCounts[k]:N0})", () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter("Typ", 2); b.SetFilter("Problem", opt); })));
+            }
+        }
+        var actions = gapActions.Concat(new (string text, Action act)[]
+        {
+            ("Chardefs ohne Animation anzeigen (Bodies)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Status", 3); })),
+            ("Nur UOP-Animationen anzeigen (Bodies)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Quelle", 2); })),
+            ("Bodies ohne Chardef anzeigen (Animation vorhanden)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Chardef", 2); b.SetFilter("Status", 1); })),
+            ("Item-AnimIDs ohne Animation", () => Navigate("itemanim", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
+            ("Freie Item-Art-Slots", () => Navigate("art", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
+            ("Freie Gump-Slots", () => Navigate("gump", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
+            ("Leere Hues", () => Navigate("hues", b => { b.ResetFilters(); b.SetFilter("Eintrag", 1); })),
+        }).ToArray();
+        foreach (var a in actions)
+        {
+            quick.Items.Add(new ListViewItem(a.text) { Tag = a.act });
+        }
+        quick.DoubleClick += (_, _) =>
+        {
+            if (quick.SelectedItems.Count > 0 && quick.SelectedItems[0].Tag is Action act)
+            {
+                act();
+            }
+        };
+        lower.Controls.Add(Panel_("Schnellaktionen", quick, "Doppelklick führt aus."), 2, 0);
+
+        root.Controls.Add(lower);
+        root.Controls.Add(cards);
+        Theme.Style(root);
+        return root;
+    }
+
+    private static IEnumerable<(string, string)> FileInfos(Context c)
+    {
+        yield return ("art.mul", $"{c.Art.ArtIdx.Count:N0} Index-Einträge (Land + Items)");
+        yield return ("gumpart.mul", $"{c.Art.GumpIdx.Count:N0} Gump-Slots");
+        yield return ("tiledata.mul", $"{c.Tile.LandCount:N0} Land + {c.Tile.ItemCount:N0} Items");
+        yield return ("hues.mul", $"{c.Hues.Count:N0} Hues");
+        yield return ("radarcol.mul", "Radarfarben");
+        yield return ("skills.mul", $"{c.Skills.Count} Skills");
+        for (int f = 0; f < 6; f++)
+        {
+            if (c.Anim.Pos[f] != null)
+            {
+                yield return (AnimStore.FileNames[f] + ".mul", $"bis Body/Index {c.Anim.MaxId(f)}");
+            }
+        }
+        foreach (var u in c.Anim.Uop.Files)
+        {
+            yield return (u, "UOP-Animation");
+        }
+        yield return ("bodyconv.def", $"{c.Anim.BodyConv.Count} Einträge");
+        yield return ("body.def", $"{c.Anim.BodyDef.Count} Einträge");
+        yield return ("mobtypes.txt", $"{c.Anim.MobTypes.Count} Einträge");
+    }
+
+    private static string FormatSize(long b) => b >= 1 << 30 ? $"{b / (double)(1 << 30):F1} GB" : b >= 1 << 20 ? $"{b / (double)(1 << 20):F1} MB" : $"{b / 1024.0:F0} KB";
+
+    private static Control StatCard(string caption, string value, string sub, Color valueColor, Action? click = null)
+    {
+        var card = new CardPanel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 10, 0), Padding = new Padding(18, 14, 14, 14) };
+        var cap = new Label { Text = caption, Font = Theme.Ui, ForeColor = Theme.Muted, Dock = DockStyle.Top, Height = 26, BackColor = Color.Transparent };
+        var subl = new Label { Text = sub, Font = new Font("Segoe UI", 8.25f), ForeColor = Theme.Muted, Dock = DockStyle.Bottom, Height = 36, BackColor = Color.Transparent };
+        var val = new Label { Text = value, Font = Theme.Number, ForeColor = valueColor, Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, BackColor = Color.Transparent };
+        card.Controls.Add(val);
+        card.Controls.Add(subl);
+        card.Controls.Add(cap);
+        if (click != null)
+        {
+            foreach (Control c in new Control[] { card, cap, subl, val })
+            {
+                c.Cursor = Cursors.Hand;
+                c.Click += (_, _) => click();
+            }
+        }
+        return card;
+    }
+
+    private static Control Panel_(string title, Control inner, string? footer = null)
+    {
+        var card = new CardPanel { Dock = DockStyle.Fill, Margin = new Padding(0, 0, 10, 0), Padding = new Padding(16, 14, 16, 12) };
+        var t = new Label { Text = title, Font = Theme.UiBold, ForeColor = Theme.Text, Dock = DockStyle.Top, Height = 28, BackColor = Color.Transparent };
+        inner.Dock = DockStyle.Fill;
+        card.Controls.Add(inner);
+        if (footer != null)
+        {
+            card.Controls.Add(new Label { Text = footer, ForeColor = Theme.Muted, Dock = DockStyle.Bottom, Height = 24, BackColor = Color.Transparent });
+        }
+        card.Controls.Add(t);
+        return card;
+    }
+
+    private static ListView SimpleList(string[] cols, int[] widths)
+    {
+        var lv = new ListView
+        {
+            Name = "simple", View = View.Details, FullRowSelect = true, HideSelection = false, MultiSelect = false, OwnerDraw = true,
+            HeaderStyle = ColumnHeaderStyle.None,
+            BackColor = Theme.Card, ForeColor = Theme.Text, BorderStyle = BorderStyle.None,
+        };
+        for (int i = 0; i < cols.Length; i++)
+        {
+            lv.Columns.Add(cols[i], widths[i]);
+        }
+        lv.DrawColumnHeader += (_, e) =>
+        {
+            using var b = new SolidBrush(Theme.Card);
+            e.Graphics.FillRectangle(b, e.Bounds);
+            TextRenderer.DrawText(e.Graphics, e.Header?.Text ?? "", Theme.UiBold, new Rectangle(e.Bounds.X + 4, e.Bounds.Y, e.Bounds.Width - 4, e.Bounds.Height), Theme.Muted,
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPadding);
+        };
+        lv.DrawItem += (_, e) => e.DrawDefault = false;
+        lv.DrawSubItem += (_, e) =>
+        {
+            bool sel = e.Item != null && e.Item.Selected;
+            using (var b = new SolidBrush(sel ? Theme.GoldDark : Theme.Card))
+            {
+                e.Graphics.FillRectangle(b, e.Bounds);
+            }
+            TextRenderer.DrawText(e.Graphics, e.SubItem?.Text ?? "", Theme.Ui, new Rectangle(e.Bounds.X + 4, e.Bounds.Y, e.Bounds.Width - 4, e.Bounds.Height),
+                sel ? Theme.Gold : (e.ColumnIndex == 0 ? Theme.Text : Theme.Muted),
+                TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPadding);
+        };
+        lv.Resize += (_, _) =>
+        {
+            int used = 0;
+            for (int i = 0; i < lv.Columns.Count - 1; i++)
+            {
+                used += lv.Columns[i].Width;
+            }
+            lv.Columns[lv.Columns.Count - 1].Width = Math.Max(60, lv.ClientSize.Width - used);
+        };
+        return lv;
+    }
+}
+
+public static class Program
+{
+    [STAThread]
+    public static void Main(string[] args)
+    {
+        if (args.Length > 1 && args[0] == "--selftest")
+        {
+            File.WriteAllText(args[1], SelfTest.Run());
+            return;
+        }
+        int pi = Array.IndexOf(args, "--page");
+        if (pi >= 0 && pi + 1 < args.Length)
+        {
+            MainForm.StartPage = args[pi + 1];
+        }
+        Application.SetHighDpiMode(HighDpiMode.SystemAware);
+        Application.EnableVisualStyles();
+        Application.SetCompatibleTextRenderingDefault(false);
+        Application.Run(new MainForm());
+    }
+}
+
