@@ -456,6 +456,7 @@ public sealed class MainForm : Form
     {
         var b = new BrowserControl(p);
         b.Viewed += (text, key) => AddHistory(pageKey, text, key);
+        b.GraphicsEdited += () => _tiledata?.RecomputeAll();
         return b;
     }
 

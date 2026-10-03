@@ -450,6 +450,11 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
     public void ApplyRules()
     {
         _c.Settings.Save();
+        RecomputeAll();
+    }
+
+    public void RecomputeAll()
+    {
         for (int i = 0; i < _problems.Length; i++)
         {
             _problems[i] = Compute(i);

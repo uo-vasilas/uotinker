@@ -523,6 +523,7 @@ public sealed class BrowserControl : UserControl
                     if (_p is ArtProvider or LandProvider or GumpProvider)
                     {
                         _grid?.ClearCache();
+                        GraphicsEdited?.Invoke();
                         BeginInvoke(() => ShowEntry(i, false));
                     }
                 };
@@ -618,6 +619,8 @@ public sealed class BrowserControl : UserControl
     }
 
     public event Action<string, int>? Viewed;
+
+    public event Action? GraphicsEdited;
 
     public void SetFilter(string label, int option)
     {
