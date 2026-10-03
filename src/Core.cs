@@ -12,6 +12,7 @@ public sealed class Settings
     public int DisabledProblems { get; set; }
     public bool ReadOnly { get; set; }
     public bool CheckUpdates { get; set; } = true;
+    public string Language { get; set; } = "";
 
     public static bool IsReadOnly;
 

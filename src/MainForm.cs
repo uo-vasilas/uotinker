@@ -235,6 +235,21 @@ public sealed class MainForm : Form
             _settings.Save();
         };
         m.Items.Add(auto);
+        m.Items.Add(new ToolStripSeparator());
+        var lang = new ToolStripMenuItem("Sprache / Language");
+        foreach (var (code, name) in new[] { ("de", "Deutsch"), ("en", "English") })
+        {
+            string c = code;
+            var item = new ToolStripMenuItem(name) { Checked = (c == "en") == Loc.English };
+            item.Click += (_, _) =>
+            {
+                _settings.Language = c;
+                _settings.Save();
+                MessageBox.Show(this, Loc.English != (c == "en") ? "Die Sprache wird nach einem Neustart von UOTinker angewendet.\nThe language is applied after restarting UOTinker." : "Sprache gespeichert.\nLanguage saved.", "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            };
+            lang.DropDownItems.Add(item);
+        }
+        m.Items.Add(lang);
         m.Show(Cursor.Position);
     }
 
@@ -844,6 +859,7 @@ public static class Program
     [STAThread]
     public static void Main(string[] args)
     {
+        Loc.Init(Settings.Load().Language);
         if (args.Length > 1 && args[0] == "--selftest")
         {
             File.WriteAllText(args[1], SelfTest.Run());
