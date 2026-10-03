@@ -13,6 +13,10 @@ permissions:
 jobs:
   build:
     runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      SIGN: ${{ startsWith(github.ref, 'refs/tags/v') && vars.SIGNPATH_ORGANIZATION_ID != '' }}
     steps:
       - uses: actions/checkout@v4
 
@@ -24,13 +28,91 @@ jobs:
         shell: pwsh
         run: choco install nsis --no-progress -y
 
+      - name: Read version
+        shell: pwsh
+        run: |
+          $version = ([xml](Get-Content UOTinker.csproj)).Project.PropertyGroup.Version | Where-Object { $_ } | Select-Object -First 1
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Check tag matches version
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        run: |
+          if ($env:GITHUB_REF_NAME -ne "v$env:VERSION") { throw "Tag $env:GITHUB_REF_NAME does not match project version $env:VERSION" }
+
+      - name: Publish
+        shell: pwsh
+        run: |
+          dotnet publish UOTinker.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -p:DebugType=none -o publish
+          if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed" }
+
+      - name: Upload program for signing
+        if: env.SIGN == 'true'
+        id: upload-exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: UOTinker-exe-unsigned
+          path: publish/UOTinker.exe
+          if-no-files-found: error
+
+      - name: Sign program
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: program
+          github-artifact-id: ${{ steps.upload-exe.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-exe
+
+      - name: Use signed program
+        if: env.SIGN == 'true'
+        shell: pwsh
+        run: Copy-Item signed-exe\UOTinker.exe publish\UOTinker.exe -Force
+
       - name: Build installer
         shell: pwsh
-        run: .\tools\Release-UOTinker.ps1 -Makensis "C:\Program Files (x86)\NSIS\makensis.exe"
+        working-directory: Setup
+        run: |
+          & "C:\Program Files (x86)\NSIS\makensis.exe" "/DAPP_VERSION=$env:VERSION" UOTinker.nsi
+          if ($LASTEXITCODE -ne 0) { throw "makensis failed" }
 
       - name: Upload installer
+        id: upload-setup
+        uses: actions/upload-artifact@v4
+        with:
+          name: UOTinker-Setup-unsigned
+          path: Setup/UOTinker_Setup_*.exe
+          if-no-files-found: error
+
+      - name: Sign installer
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@v1
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: ${{ vars.SIGNPATH_SIGNING_POLICY_SLUG }}
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.upload-setup.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed-setup
+
+      - name: Upload signed installer
+        if: env.SIGN == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: UOTinker-Setup
-          path: Setup/UOTinker_Setup_*.exe
+          path: signed-setup/UOTinker_Setup_*.exe
           if-no-files-found: error
+
+      - name: Create draft release
+        if: env.SIGN == 'true'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:GITHUB_REF_NAME (Get-Item signed-setup\UOTinker_Setup_*.exe).FullName --draft --title $env:GITHUB_REF_NAME --notes "Signed release build. Edit the release notes, then publish."
