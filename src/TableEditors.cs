@@ -6,9 +6,9 @@ public abstract class StoreEditor : UserControl, IEditorControl
 {
     private readonly Label _head = new() { AutoSize = true, Font = Theme.UiBold, ForeColor = Theme.Gold };
     private readonly Label _status = new() { AutoSize = false, Height = 52, Dock = DockStyle.Bottom };
-    private readonly Button _save = Theme.FlatButton("Speichern", true);
-    private readonly Button _revert = Theme.FlatButton("Eintrag zurücksetzen");
-    private readonly Button _revertAll = Theme.FlatButton("Alle verwerfen");
+    private readonly Button _save = Theme.FlatButton(Loc.T("Speichern"), true);
+    private readonly Button _revert = Theme.FlatButton(Loc.T("Eintrag zurücksetzen"));
+    private readonly Button _revertAll = Theme.FlatButton(Loc.T("Alle verwerfen"));
     private string _saved = "";
     private bool _savedFailed;
 
@@ -59,7 +59,7 @@ public abstract class StoreEditor : UserControl, IEditorControl
         _revertAll.Click += (_, _) =>
         {
             int n = Pending;
-            if (n == 0 || MessageBox.Show(FindForm(), $"{n} ungespeicherte Änderungen verwerfen?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+            if (n == 0 || MessageBox.Show(FindForm(), Loc.F("{0} ungespeicherte Änderungen verwerfen?", n), "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
             {
                 return;
             }
@@ -96,7 +96,7 @@ public abstract class StoreEditor : UserControl, IEditorControl
         int n = Pending;
         string? err = Persist(out string backup);
         _savedFailed = err != null;
-        _saved = err != null ? "Speichern fehlgeschlagen: " + err : $"{n} Änderung(en) in {FileName} gespeichert. Sicherung: {backup}\nDie Datei muss zusätzlich dort verteilt werden, wo sie gebraucht wird (Client, Server).";
+        _saved = err != null ? Loc.T("Speichern fehlgeschlagen: ") + err : Loc.F("{0} Änderung(en) in {1} gespeichert. Sicherung: {2}\nDie Datei muss zusätzlich dort verteilt werden, wo sie gebraucht wird (Client, Server).", n, FileName, backup);
         UpdateState();
         if (err == null)
         {
@@ -112,7 +112,7 @@ public abstract class StoreEditor : UserControl, IEditorControl
             c.Enabled = can;
         }
         _save.Enabled = can && Pending > 0;
-        _save.Text = $"Speichern ({Pending})";
+        _save.Text = Loc.F("Speichern ({0})", Pending);
         _revert.Enabled = can && EntryDirty;
         _revertAll.Enabled = can && Pending > 0;
         if (!can)
@@ -128,7 +128,7 @@ public abstract class StoreEditor : UserControl, IEditorControl
         else
         {
             _status.ForeColor = Theme.Muted;
-            _status.Text = Pending > 0 ? $"{Pending} Änderung(en) noch nicht gespeichert." : "Keine ungespeicherten Änderungen.";
+            _status.Text = Pending > 0 ? Loc.F("{0} Änderung(en) noch nicht gespeichert.", Pending) : Loc.T("Keine ungespeicherten Änderungen.");
         }
     }
 
@@ -156,15 +156,15 @@ public sealed class RadarEditor : StoreEditor
     private readonly int _id;
     private readonly Panel _swatch = new() { Width = 64, Height = 28, BorderStyle = BorderStyle.FixedSingle };
     private readonly TextBox _hex = new() { Width = 80, MaxLength = 6 };
-    private readonly Button _pick = Theme.FlatButton("Farbe wählen ...");
-    private readonly Button _fromArt = Theme.FlatButton("Aus der Grafik berechnen");
-    private readonly Button _fillAll = Theme.FlatButton("Fehlende Item-Farben füllen ...");
+    private readonly Button _pick = Theme.FlatButton(Loc.T("Farbe wählen ..."));
+    private readonly Button _fromArt = Theme.FlatButton(Loc.T("Aus der Grafik berechnen"));
+    private readonly Button _fillAll = Theme.FlatButton(Loc.T("Fehlende Item-Farben füllen ..."));
 
     protected override string FileName => "radarcol.mul";
     protected override int Pending => _r.Dirty.Count;
     protected override bool EntryDirty => _r.Dirty.Contains(_i);
     protected override bool Writable => _r.CanWrite;
-    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "radarcol.mul fehlt im Datenordner.";
+    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("radarcol.mul fehlt im Datenordner.");
     protected override string? Persist(out string backup) => _r.Save(out backup);
     protected override void RevertEntry() => _r.Revert(_i);
     protected override void RevertEverything() => _r.RevertAll();
@@ -176,9 +176,9 @@ public sealed class RadarEditor : StoreEditor
         _i = index;
         _land = index < ArtStore.LandCount;
         _id = _land ? index : index - ArtStore.LandCount;
-        Init($"Radarfarbe {(_land ? "Land" : "Item")} {_id} ({Gfx.Hex(_id)}) bearbeiten");
+        Init(Loc.F("Radarfarbe {0} {1} ({2}) bearbeiten", _land ? "Land" : "Item", _id, Gfx.Hex(_id)));
         var flow = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 460 };
-        flow.Controls.Add(Lbl("Farbe (15 Bit, hex)"));
+        flow.Controls.Add(Lbl(Loc.T("Farbe (15 Bit, hex)")));
         flow.Controls.Add(_hex);
         flow.Controls.Add(_swatch);
         _pick.Width = 150;
@@ -213,7 +213,7 @@ public sealed class RadarEditor : StoreEditor
             ushort? v = Average(_id, _land);
             if (v == null)
             {
-                MessageBox.Show(FindForm(), "Für diesen Eintrag gibt es keine Grafik.", "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                MessageBox.Show(FindForm(), Loc.T("Für diesen Eintrag gibt es keine Grafik."), "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Information);
                 return;
             }
             Apply(v.Value, true);
@@ -287,10 +287,10 @@ public sealed class RadarEditor : StoreEditor
         }
         if (todo.Count == 0)
         {
-            MessageBox.Show(FindForm(), "Alle Items mit Grafik haben schon eine Radarfarbe.", "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Information);
+            MessageBox.Show(FindForm(), Loc.T("Alle Items mit Grafik haben schon eine Radarfarbe."), "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Information);
             return;
         }
-        if (MessageBox.Show(FindForm(), $"{todo.Count} Items haben eine Grafik, aber die Radarfarbe 0. Farben aus den Grafiken berechnen und als Änderung vormerken?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
+        if (MessageBox.Show(FindForm(), Loc.F("{0} Items haben eine Grafik, aber die Radarfarbe 0. Farben aus den Grafiken berechnen und als Änderung vormerken?", todo.Count), "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
         {
             return;
         }
@@ -323,7 +323,7 @@ public sealed class HueEditor : StoreEditor
     protected override int Pending => _h.Dirty.Count;
     protected override bool EntryDirty => _h.Dirty.Contains(_i);
     protected override bool Writable => _h.CanWrite;
-    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "hues.mul fehlt im Datenordner.";
+    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("hues.mul fehlt im Datenordner.");
     protected override string? Persist(out string backup) => _h.Save(out backup);
     protected override void RevertEntry() => _h.Revert(_i);
     protected override void RevertEverything() => _h.RevertAll();
@@ -332,13 +332,13 @@ public sealed class HueEditor : StoreEditor
     {
         _h = c.Hues;
         _i = index;
-        Init($"Hue {index} ({Gfx.Hex(index)}) bearbeiten");
+        Init(Loc.F("Hue {0} ({1}) bearbeiten", index, Gfx.Hex(index)));
         var top = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 560 };
-        top.Controls.Add(Lbl("Name"));
+        top.Controls.Add(Lbl(Loc.T("Name")));
         top.Controls.Add(_name);
-        top.Controls.Add(Lbl("Tabelle von"));
+        top.Controls.Add(Lbl(Loc.T("Tabelle von")));
         top.Controls.Add(_start);
-        top.Controls.Add(Lbl("bis"));
+        top.Controls.Add(Lbl(Loc.T("bis")));
         top.Controls.Add(_end);
         var grid = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 440, Padding = new Padding(4, 8, 4, 4) };
         for (int k = 0; k < 32; k++)
@@ -360,7 +360,7 @@ public sealed class HueEditor : StoreEditor
             grid.Controls.Add(b);
         }
         var tools = new FlowLayoutPanel { AutoSize = true, Padding = new Padding(4, 0, 4, 4) };
-        var ramp = Theme.FlatButton("Verlauf zwischen Farbe 1 und 32");
+        var ramp = Theme.FlatButton(Loc.T("Verlauf zwischen Farbe 1 und 32"));
         ramp.Width = 250;
         ramp.Click += (_, _) =>
         {
@@ -379,7 +379,7 @@ public sealed class HueEditor : StoreEditor
             Notify(true);
         };
         var copyRow = new FlowLayoutPanel { AutoSize = true, Padding = new Padding(4, 0, 4, 4) };
-        var copy = Theme.FlatButton("Farben von Hue kopieren");
+        var copy = Theme.FlatButton(Loc.T("Farben von Hue kopieren"));
         copy.Width = 200;
         _from.Maximum = Math.Max(0, c.Hues.Count - 1);
         copy.Click += (_, _) =>
@@ -450,15 +450,15 @@ public sealed class SkillEditor : StoreEditor
 {
     private readonly SkillData _s;
     private readonly int _i;
-    private readonly CheckBox _valid = new() { Text = "Skill vorhanden", AutoSize = true, ForeColor = Theme.Text };
-    private readonly CheckBox _button = new() { Text = "Skill-Button im Fenster", AutoSize = true, ForeColor = Theme.Text };
+    private readonly CheckBox _valid = new() { Text = Loc.T("Skill vorhanden"), AutoSize = true, ForeColor = Theme.Text };
+    private readonly CheckBox _button = new() { Text = Loc.T("Skill-Button im Fenster"), AutoSize = true, ForeColor = Theme.Text };
     private readonly TextBox _name = new() { MaxLength = 40, Width = 280, BackColor = Theme.Input, ForeColor = Theme.Text };
 
-    protected override string FileName => "skills.mul und skills.idx";
+    protected override string FileName => Loc.T("skills.mul und skills.idx");
     protected override int Pending => _s.Dirty.Count;
     protected override bool EntryDirty => _s.Dirty.Contains(_i);
     protected override bool Writable => _s.CanWrite;
-    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "skills.idx fehlt im Datenordner.";
+    protected override string Blocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("skills.idx fehlt im Datenordner.");
     protected override string? Persist(out string backup) => _s.Save(out backup);
     protected override void RevertEntry() => _s.Revert(_i);
     protected override void RevertEverything() => _s.RevertAll();
@@ -467,9 +467,9 @@ public sealed class SkillEditor : StoreEditor
     {
         _s = c.Skills;
         _i = index;
-        Init($"Skill {index} ({Gfx.Hex(index)}) bearbeiten");
+        Init(Loc.F("Skill {0} ({1}) bearbeiten", index, Gfx.Hex(index)));
         var f = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 460 };
-        f.Controls.Add(Lbl("Name"));
+        f.Controls.Add(Lbl(Loc.T("Name")));
         f.Controls.Add(_name);
         var f2 = new FlowLayoutPanel { AutoSize = true, WrapContents = true, Width = 460, Padding = new Padding(4, 4, 4, 0) };
         f2.Controls.Add(_valid);
@@ -509,7 +509,7 @@ public sealed class ClilocEditor : StoreEditor
     private readonly ClilocData _d;
     private int _number;
     private readonly TextBox _text = new() { Multiline = true, Width = 440, Height = 150, ScrollBars = ScrollBars.Vertical, BackColor = Theme.Input, ForeColor = Theme.Text, AcceptsReturn = true };
-    private readonly Button _new = Theme.FlatButton("Neuer Eintrag ...");
+    private readonly Button _new = Theme.FlatButton(Loc.T("Neuer Eintrag ..."));
 
     protected override string FileName => System.IO.Path.GetFileName(_d.Path);
     protected override int Pending => _d.Dirty.Count;
@@ -524,7 +524,7 @@ public sealed class ClilocEditor : StoreEditor
     {
         _d = d;
         _number = number;
-        Init($"Cliloc {number} ({Gfx.Hex(number)}) bearbeiten");
+        Init(Loc.F("Cliloc {0} ({1}) bearbeiten", number, Gfx.Hex(number)));
         var row = new FlowLayoutPanel { AutoSize = true, Padding = new Padding(4, 4, 4, 4) };
         _new.Width = 170;
         row.Controls.Add(_new);
@@ -556,18 +556,18 @@ public sealed class ClilocEditor : StoreEditor
     {
         using var f = new Form
         {
-            Text = "Neuer Cliloc-Eintrag", Width = 500, Height = 290, StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog,
+            Text = Loc.T("Neuer Cliloc-Eintrag"), Width = 500, Height = 290, StartPosition = FormStartPosition.CenterParent, FormBorderStyle = FormBorderStyle.FixedDialog,
             MaximizeBox = false, MinimizeBox = false, ShowInTaskbar = false, BackColor = Theme.Bg, ForeColor = Theme.Text, Font = Theme.Ui,
         };
         var num = new TextBox { Left = 16, Top = 40, Width = 140, BackColor = Theme.Input, ForeColor = Theme.Text };
         var txt = new TextBox { Left = 16, Top = 100, Width = 450, Height = 80, Multiline = true, BackColor = Theme.Input, ForeColor = Theme.Text };
         var info = new Label { Left = 170, Top = 42, Width = 300, Height = 20, ForeColor = Theme.Red };
-        var ok = Theme.FlatButton("Anlegen", true);
+        var ok = Theme.FlatButton(Loc.T("Anlegen"), true);
         ok.SetBounds(16, 196, 120, 36);
-        var cancel = Theme.FlatButton("Abbrechen");
+        var cancel = Theme.FlatButton(Loc.T("Abbrechen"));
         cancel.SetBounds(146, 196, 120, 36);
-        f.Controls.Add(new Label { Text = "Nummer (dezimal oder 0x)", Left = 16, Top = 18, AutoSize = true });
-        f.Controls.Add(new Label { Text = "Text", Left = 16, Top = 78, AutoSize = true });
+        f.Controls.Add(new Label { Text = Loc.T("Nummer (dezimal oder 0x)"), Left = 16, Top = 18, AutoSize = true });
+        f.Controls.Add(new Label { Text = Loc.T("Text"), Left = 16, Top = 78, AutoSize = true });
         f.Controls.Add(num);
         f.Controls.Add(txt);
         f.Controls.Add(info);
@@ -581,12 +581,12 @@ public sealed class ClilocEditor : StoreEditor
             bool hex = t.StartsWith("0x", StringComparison.OrdinalIgnoreCase);
             if (!int.TryParse(hex ? t[2..] : t, hex ? System.Globalization.NumberStyles.HexNumber : System.Globalization.NumberStyles.Integer, null, out int n) || n <= 0)
             {
-                info.Text = "Bitte eine gültige Nummer eingeben.";
+                info.Text = Loc.T("Bitte eine gültige Nummer eingeben.");
                 return;
             }
             if (_d.IndexOf(n) >= 0)
             {
-                info.Text = "Diese Nummer gibt es schon.";
+                info.Text = Loc.T("Diese Nummer gibt es schon.");
                 return;
             }
             _d.SetText(n, txt.Text.Replace("\r\n", "\n").Replace('\n', ' '));

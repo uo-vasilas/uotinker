@@ -190,7 +190,7 @@ public sealed class ArtStore
         int w = src.Width, h = src.Height;
         if (w < 1 || h < 1 || w > 1024 || h > 1024)
         {
-            error = $"Groesse {w}x{h} nicht erlaubt (1 bis 1024).";
+            error = Loc.F("Groesse {0}x{1} nicht erlaubt (1 bis 1024).", w, h);
             return null;
         }
         var px = new uint[w * h];
@@ -226,7 +226,7 @@ public sealed class ArtStore
         {
             if (words.Count > ushort.MaxValue)
             {
-                error = "Bild ist zu komplex fuer das Format.";
+                error = Loc.T("Bild ist zu komplex fuer das Format.");
                 return null;
             }
             offsets[y] = (ushort)words.Count;
@@ -267,12 +267,12 @@ public sealed class ArtStore
         }
         if (!any)
         {
-            error = "Das Bild ist komplett transparent.";
+            error = Loc.T("Das Bild ist komplett transparent.");
             return null;
         }
         if (words.Count > ushort.MaxValue)
         {
-            error = "Bild ist zu komplex fuer das Format.";
+            error = Loc.T("Bild ist zu komplex fuer das Format.");
             return null;
         }
 
@@ -305,7 +305,7 @@ public sealed class ArtStore
         backup = "";
         if (!CanWrite)
         {
-            return "Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).";
+            return Loc.T("Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).");
         }
         string idxPath = System.IO.Path.Combine(_folder, "artidx.mul");
         string artPath = System.IO.Path.Combine(_folder, "art.mul");
@@ -317,7 +317,7 @@ public sealed class ArtStore
             string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
             backup = System.IO.Path.Combine(backupDir, $"artidx-{stamp}.mul");
             File.Copy(idxPath, backup, true);
-            File.WriteAllText(System.IO.Path.Combine(backupDir, $"artidx-{stamp}.txt"), $"art.mul hatte vor dem Speichern {origLen} Bytes. Zum Zuruecksetzen artidx.mul aus dieser Sicherung zurueckkopieren; die angehaengten Daten in art.mul bleiben ungenutzt.");
+            File.WriteAllText(System.IO.Path.Combine(backupDir, $"artidx-{stamp}.txt"), Loc.F("art.mul hatte vor dem Speichern {0} Bytes. Zum Zuruecksetzen artidx.mul aus dieser Sicherung zurueckkopieren; die angehaengten Daten in art.mul bleiben ungenutzt.", origLen));
 
             var idx = File.ReadAllBytes(idxPath);
             var entries = new SortedDictionary<int, byte[]?>();
@@ -355,7 +355,7 @@ public sealed class ArtStore
                 long pos = fs.Seek(0, SeekOrigin.End);
                 if (pos > int.MaxValue - kv.Value.Length)
                 {
-                    throw new IOException("art.mul waere groesser als 2 GB.");
+                    throw new IOException(Loc.T("art.mul waere groesser als 2 GB."));
                 }
                 fs.Write(kv.Value, 0, kv.Value.Length);
                 BitConverter.GetBytes((int)pos).CopyTo(idx, o);
@@ -431,7 +431,7 @@ public sealed class ArtStore
         error = "";
         if (src.Width != 44 || src.Height != 44)
         {
-            error = $"Land-Kacheln muessen genau 44 x 44 Pixel gross sein (das Bild hat {src.Width} x {src.Height}).";
+            error = Loc.F("Land-Kacheln muessen genau 44 x 44 Pixel gross sein (das Bild hat {0} x {1}).", src.Width, src.Height);
             return null;
         }
         var px = ReadPixels(src);
@@ -501,7 +501,7 @@ public sealed class ArtStore
         int w = src.Width, h = src.Height;
         if (w < 1 || h < 1 || w > 2048 || h > 2048)
         {
-            error = $"Groesse {w}x{h} nicht erlaubt (1 bis 2048).";
+            error = Loc.F("Groesse {0}x{1} nicht erlaubt (1 bis 2048).", w, h);
             return null;
         }
         var px = ReadPixels(src);
@@ -544,7 +544,7 @@ public sealed class ArtStore
         }
         if (!any)
         {
-            error = "Das Bild ist komplett transparent.";
+            error = Loc.T("Das Bild ist komplett transparent.");
             return null;
         }
         var buf = new byte[(h + pairs.Count) * 4];
@@ -571,7 +571,7 @@ public sealed class ArtStore
         backup = "";
         if (!CanWrite)
         {
-            return "Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).";
+            return Loc.T("Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).");
         }
         string idxPath = System.IO.Path.Combine(_folder, "gumpidx.mul");
         string mulPath = System.IO.Path.Combine(_folder, "gumpart.mul");
@@ -583,7 +583,7 @@ public sealed class ArtStore
             string stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
             backup = System.IO.Path.Combine(backupDir, $"gumpidx-{stamp}.mul");
             File.Copy(idxPath, backup, true);
-            File.WriteAllText(System.IO.Path.Combine(backupDir, $"gumpidx-{stamp}.txt"), $"gumpart.mul hatte vor dem Speichern {origLen} Bytes. Zum Zuruecksetzen gumpidx.mul aus dieser Sicherung zurueckkopieren; die angehaengten Daten in gumpart.mul bleiben ungenutzt.");
+            File.WriteAllText(System.IO.Path.Combine(backupDir, $"gumpidx-{stamp}.txt"), Loc.F("gumpart.mul hatte vor dem Speichern {0} Bytes. Zum Zuruecksetzen gumpidx.mul aus dieser Sicherung zurueckkopieren; die angehaengten Daten in gumpart.mul bleiben ungenutzt.", origLen));
 
             var idx = File.ReadAllBytes(idxPath);
             int maxEntry = PendingGump.Keys.Max();
@@ -614,7 +614,7 @@ public sealed class ArtStore
                 long pos = fs.Seek(0, SeekOrigin.End);
                 if (pos > int.MaxValue - data.Length)
                 {
-                    throw new IOException("gumpart.mul waere groesser als 2 GB.");
+                    throw new IOException(Loc.T("gumpart.mul waere groesser als 2 GB."));
                 }
                 fs.Write(data, 0, data.Length);
                 BitConverter.GetBytes((int)pos).CopyTo(idx, o);
@@ -648,14 +648,14 @@ public sealed class ArtStore
         error = "";
         if (!StaticValid(id))
         {
-            error = "Slot ist frei (kein Eintrag).";
+            error = Loc.T("Slot ist frei (kein Eintrag).");
             return null;
         }
         int ix = id + LandCount;
         byte[]? buf = Pending.TryGetValue(id, out var pd) ? pd : ArtMul.Read(ArtIdx.Lookup[ix], ArtIdx.Length[ix]);
         if (buf == null || buf.Length < 8)
         {
-            error = "Daten ausserhalb von art.mul oder zu kurz.";
+            error = Loc.T("Daten ausserhalb von art.mul oder zu kurz.");
             return null;
         }
 
@@ -663,7 +663,7 @@ public sealed class ArtStore
         short height = BitConverter.ToInt16(buf, 6);
         if (width <= 0 || height <= 0 || width > 1024 || height > 1024)
         {
-            error = $"Ungueltige Groesse {width}x{height}.";
+            error = Loc.F("Ungueltige Groesse {0}x{1}.", width, height);
             return null;
         }
 
@@ -671,7 +671,7 @@ public sealed class ArtStore
         long dataStart = 8;
         if (dataStart + height * 2 > buf.Length)
         {
-            error = "Zeilentabelle ausserhalb der Daten.";
+            error = Loc.T("Zeilentabelle ausserhalb der Daten.");
             return null;
         }
 
@@ -733,18 +733,18 @@ public sealed class ArtStore
         error = "";
         if (!LandValid(id))
         {
-            error = "Slot ist frei (kein Eintrag).";
+            error = Loc.T("Slot ist frei (kein Eintrag).");
             return null;
         }
         byte[]? buf = PendingLand.TryGetValue(id, out var pl) ? pl : ArtMul.Read(ArtIdx.Lookup[id], ArtIdx.Length[id]);
         if (buf == null)
         {
-            error = "Daten ausserhalb von art.mul.";
+            error = Loc.T("Daten ausserhalb von art.mul.");
             return null;
         }
         if (buf.Length < 2024)
         {
-            error = $"Land-Eintrag hat {buf.Length} Byte (erwartet 2024) - kein klassisches Land-Format.";
+            error = Loc.F("Land-Eintrag hat {0} Byte (erwartet 2024) - kein klassisches Land-Format.", buf.Length);
             return null;
         }
 
@@ -776,25 +776,25 @@ public sealed class ArtStore
         error = "";
         if (!GumpValid(id))
         {
-            error = "Slot ist frei (kein Eintrag).";
+            error = Loc.T("Slot ist frei (kein Eintrag).");
             return null;
         }
         var (width, height) = GumpSize(id);
         if (width <= 0 || height <= 0)
         {
-            error = $"Ungueltige Groesse {width}x{height}.";
+            error = Loc.F("Ungueltige Groesse {0}x{1}.", width, height);
             return null;
         }
         int length = GumpLength(id);
         byte[]? buf = PendingGump.TryGetValue(id, out var pg) ? pg.data : GumpMul.Read(GumpIdx.Lookup[id], length);
         if (buf == null)
         {
-            error = "Daten ausserhalb von gumpart.mul.";
+            error = Loc.T("Daten ausserhalb von gumpart.mul.");
             return null;
         }
         if (length < height * 4)
         {
-            error = "Daten zu kurz fuer die Zeilentabelle.";
+            error = Loc.T("Daten zu kurz fuer die Zeilentabelle.");
             return null;
         }
 
@@ -1145,7 +1145,7 @@ public sealed class TileData
         backupPath = "";
         if (!CanWrite)
         {
-            return "Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).";
+            return Loc.T("Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).");
         }
         try
         {

@@ -193,7 +193,7 @@ public sealed class ThumbGrid : Control
         if (_view.Count == 0)
         {
             using var br = new SolidBrush(Theme.Muted);
-            g.DrawString("Keine Eintraege in dieser Auswahl.", Font, br, 10, 10);
+            g.DrawString(Loc.T("Keine Eintraege in dieser Auswahl."), Font, br, 10, 10);
             return;
         }
 
@@ -223,7 +223,7 @@ public sealed class ThumbGrid : Control
                 if (IsFree(key))
                 {
                     var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                    g.DrawString("frei", small, freeBr, new RectangleF(x, y, _cell, _cell), sf);
+                    g.DrawString(Loc.T("frei"), small, freeBr, new RectangleF(x, y, _cell, _cell), sf);
                 }
                 else
                 {
@@ -248,7 +248,7 @@ public sealed class ThumbGrid : Control
                     else
                     {
                         var sf = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
-                        g.DrawString("kein\nBild", small, freeBr, new RectangleF(x, y, _cell, _cell), sf);
+                        g.DrawString(Loc.T("kein\nBild"), small, freeBr, new RectangleF(x, y, _cell, _cell), sf);
                     }
                 }
 

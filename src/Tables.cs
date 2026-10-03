@@ -6,7 +6,7 @@ public static class StoreIo
 {
     public static string BackupDir => Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "UOTinker", "backups");
 
-    public const string ReadOnlyMessage = "Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).";
+    public static string ReadOnlyMessage => Loc.T("Der Schreibschutz ist aktiv (Zahnrad unten links: Schreibschutz ausschalten).");
 
     public static string Backup(string path, string prefix)
     {
@@ -93,7 +93,7 @@ public sealed class RadarData
         backup = "";
         if (!CanWrite)
         {
-            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "radarcol.mul fehlt.";
+            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("radarcol.mul fehlt.");
         }
         try
         {
@@ -160,7 +160,7 @@ public sealed partial class HueData
         backup = "";
         if (!CanWrite)
         {
-            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "hues.mul fehlt.";
+            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("hues.mul fehlt.");
         }
         try
         {
@@ -234,7 +234,7 @@ public sealed partial class SkillData
         backup = "";
         if (!CanWrite)
         {
-            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : "skills.idx fehlt.";
+            return Settings.IsReadOnly ? StoreIo.ReadOnlyMessage : Loc.T("skills.idx fehlt.");
         }
         string idxPath = Path.Combine(_folder, "skills.idx");
         string mulPath = Path.Combine(_folder, "skills.mul");
@@ -242,7 +242,7 @@ public sealed partial class SkillData
         {
             string b1 = File.Exists(mulPath) ? StoreIo.Backup(mulPath, "skills") : "";
             string b2 = StoreIo.Backup(idxPath, "skills");
-            backup = b1.Length > 0 ? b1 + " und " + b2 : b2;
+            backup = b1.Length > 0 ? Loc.F("{0} und {1}", b1, b2) : b2;
             var mul = new MemoryStream();
             var idx = new byte[Count * 12];
             for (int i = 0; i < Count; i++)
@@ -287,8 +287,8 @@ public sealed partial class ClilocData
     public bool CanWrite => !Settings.IsReadOnly && Error.Length == 0 && !Compressed;
 
     public string WriteBlocker => Settings.IsReadOnly ? StoreIo.ReadOnlyMessage
-        : Compressed ? "Diese Datei ist BWT-komprimiert. Komprimierte Cliloc-Dateien kann UOTinker nicht schreiben."
-        : Error.Length > 0 ? "Die Datei konnte nicht gelesen werden." : "";
+        : Compressed ? Loc.T("Diese Datei ist BWT-komprimiert. Komprimierte Cliloc-Dateien kann UOTinker nicht schreiben.")
+        : Error.Length > 0 ? Loc.T("Die Datei konnte nicht gelesen werden.") : "";
 
     public int IndexOf(int number) => Array.IndexOf(Numbers, number);
 

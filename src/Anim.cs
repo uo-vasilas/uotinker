@@ -299,7 +299,7 @@ public sealed class AnimStore
         return (35000 + (id - 400) * 175, 35);
     }
 
-    public static string TypeName(int id) => id < 200 ? "Hoch (Monster)" : id < 400 ? "Niedrig (Tier)" : "Menschlich/Item";
+    public static string TypeName(int id) => id < 200 ? Loc.T("Hoch (Monster)") : id < 400 ? Loc.T("Niedrig (Tier)") : Loc.T("Menschlich/Item");
 
     public int MaxId(int file)
     {
@@ -407,7 +407,7 @@ public sealed class AnimStore
             var acts = UopActions(id);
             if (acts.Length > 0)
             {
-                string flag = MobTypes.TryGetValue(id, out var mt) ? $"mobtypes: {mt.type} {mt.flags}" : "kein mobtypes-Eintrag";
+                string flag = MobTypes.TryGetValue(id, out var mt) ? $"mobtypes: {mt.type} {mt.flags}" : Loc.T("kein mobtypes-Eintrag");
                 list.Add(new AnimSource { Kind = "UOP", File = -1, Id = id, Label = $"{label} ({flag})", Actions = acts });
             }
         }
@@ -462,20 +462,20 @@ public sealed class AnimStore
         var mul = Mul[file];
         if (pos == null || size == null || mul == null)
         {
-            error = "Datei nicht vorhanden.";
+            error = Loc.T("Datei nicht vorhanden.");
             return res;
         }
         var (start, _) = Layout(id);
         int ix = start + action * 5 + dir;
         if (ix >= pos.Length || pos[ix] == 0xFFFFFFFF || size[ix] == 0 || size[ix] == 0xFFFFFFFF)
         {
-            error = "Leerer Index-Eintrag.";
+            error = Loc.T("Leerer Index-Eintrag.");
             return res;
         }
         var buf = mul.Read(pos[ix], (int)size[ix]);
         if (buf == null || buf.Length < 516)
         {
-            error = "Daten ausserhalb der Datei oder zu kurz.";
+            error = Loc.T("Daten ausserhalb der Datei oder zu kurz.");
             return res;
         }
         var palette = new ushort[256];
@@ -487,7 +487,7 @@ public sealed class AnimStore
         uint count = BitConverter.ToUInt32(buf, dataStart);
         if (count == 0 || count > 500)
         {
-            error = $"Unplausible Frame-Anzahl {count}.";
+            error = Loc.F("Unplausible Frame-Anzahl {0}.", count);
             return res;
         }
         for (int i = 0; i < count; i++)
@@ -561,13 +561,13 @@ public sealed class AnimStore
         var e = Uop.Find(id, action);
         if (e == null)
         {
-            error = "Kein UOP-Eintrag fuer diese Aktion.";
+            error = Loc.T("Kein UOP-Eintrag fuer diese Aktion.");
             return res;
         }
         var raw = Uop.ReadData(e);
         if (raw == null)
         {
-            error = "UOP-Daten ausserhalb der Datei.";
+            error = Loc.T("UOP-Daten ausserhalb der Datei.");
             return res;
         }
         byte[] data = raw;
@@ -586,14 +586,14 @@ public sealed class AnimStore
 
         if (data.Length < 40)
         {
-            error = "UOP-Block zu kurz.";
+            error = Loc.T("UOP-Block zu kurz.");
             return res;
         }
         int fc = BitConverter.ToInt32(data, 32);
         uint dataStart = BitConverter.ToUInt32(data, 36);
         if (fc <= 0 || fc > 5000)
         {
-            error = $"Unplausible Frame-Anzahl {fc}.";
+            error = Loc.F("Unplausible Frame-Anzahl {0}.", fc);
             return res;
         }
 

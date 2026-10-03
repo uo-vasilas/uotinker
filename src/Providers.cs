@@ -107,8 +107,8 @@ public abstract class ProviderBase : IProvider
 
     protected static FilterDef StatusFilter(Func<int, bool> free) => new()
     {
-        Label = "Status",
-        Options = new[] { "Alle", "Belegt", "Frei" },
+        Label = Loc.T("Status"),
+        Options = new[] { Loc.T("Alle"), Loc.T("Belegt"), Loc.T("Frei") },
         Pass = (i, o) => o == 0 || (o == 1 ? !free(i) : free(i)),
     };
 
@@ -135,7 +135,7 @@ public sealed class ArtProvider : ProviderBase, IThumbProvider
         }
     }
 
-    public override string[] Columns => new[] { "ID", "Hex", "Status", "Groesse", "Tiledata-Name", "Sphere-ITEMDEF", "AnimID" };
+    public override string[] Columns => new[] { "ID", "Hex", Loc.T("Status"), Loc.T("Groesse"), Loc.T("Tiledata-Name"), "Sphere-ITEMDEF", "AnimID" };
     public override int[] Widths => new[] { 60, 70, 60, 70, 170, 220, 60 };
     public override int Count => _count;
     public override bool IsFree(int i) => !_c.Art.StaticValid(i);
@@ -163,19 +163,19 @@ public sealed class ArtProvider : ProviderBase, IThumbProvider
 
     public override string[] Row(int i) => new[]
     {
-        i.ToString(), Gfx.Hex(i), (IsFree(i) ? (i >= _c.Art.StaticCount ? "ausserhalb" : "frei") : "belegt") + (_c.Art.Pending.ContainsKey(i) ? "*" : ""),
+        i.ToString(), Gfx.Hex(i), (IsFree(i) ? (i >= _c.Art.StaticCount ? Loc.T("ausserhalb") : Loc.T("frei")) : Loc.T("belegt")) + (_c.Art.Pending.ContainsKey(i) ? "*" : ""),
         IsFree(i) ? "" : $"{SizeOf(i).w}x{SizeOf(i).h}", TName(i), _c.Catalog.ItemNames(i),
         i < _c.Tile.ItemCount && _c.Tile.AnimId[i] != 0 ? _c.Tile.AnimId[i].ToString() : "",
     };
 
-    public override string SearchText(int i) => $"{i} 0x{i:x} {TName(i)} {_c.Catalog.ItemNames(i, 50)} {(IsFree(i) ? "frei" : "belegt")}".ToLowerInvariant();
+    public override string SearchText(int i) => $"{i} 0x{i:x} {TName(i)} {_c.Catalog.ItemNames(i, 50)} {(IsFree(i) ? Loc.T("frei") : Loc.T("belegt"))}".ToLowerInvariant();
 
     public override FilterDef[] Filters => new[]
     {
         StatusFilter(IsFree),
-        new FilterDef { Label = "Tiledata-Name", Options = new[] { "Alle", "Mit Name", "Ohne Name" }, Pass = (i, o) => o == 0 || ((TName(i).Length > 0) == (o == 1)) },
-        new FilterDef { Label = "Sphere", Options = new[] { "Alle", "Mit ITEMDEF", "Ohne ITEMDEF" }, Pass = (i, o) => o == 0 || (_c.Catalog.Items.ContainsKey(i) == (o == 1)) },
-        new FilterDef { Label = "AnimID", Options = new[] { "Alle", "Mit AnimID", "Ohne" }, Pass = (i, o) => o == 0 || ((i < _c.Tile.ItemCount && _c.Tile.AnimId[i] != 0) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Tiledata-Name"), Options = new[] { Loc.T("Alle"), Loc.T("Mit Name"), Loc.T("Ohne Name") }, Pass = (i, o) => o == 0 || ((TName(i).Length > 0) == (o == 1)) },
+        new FilterDef { Label = "Sphere", Options = new[] { Loc.T("Alle"), Loc.T("Mit ITEMDEF"), Loc.T("Ohne ITEMDEF") }, Pass = (i, o) => o == 0 || (_c.Catalog.Items.ContainsKey(i) == (o == 1)) },
+        new FilterDef { Label = "AnimID", Options = new[] { Loc.T("Alle"), Loc.T("Mit AnimID"), Loc.T("Ohne") }, Pass = (i, o) => o == 0 || ((i < _c.Tile.ItemCount && _c.Tile.AnimId[i] != 0) == (o == 1)) },
     };
 
     public override string Summary
@@ -190,14 +190,14 @@ public sealed class ArtProvider : ProviderBase, IThumbProvider
                     used++;
                 }
             }
-            return $"{_count} Slots, {used} belegt, {_count - used} frei";
+            return Loc.F("{0} Slots, {1} belegt, {2} frei", _count, used, _count - used);
         }
     }
 
     public override PreviewData Preview(int i)
     {
         var sb = new StringBuilder();
-        sb.AppendLine($"Item-Art {i} ({Gfx.Hex(i)})  -  artidx-Index {i + ArtStore.LandCount}");
+        sb.AppendLine(Loc.F("Item-Art {0} ({1})  -  artidx-Index {2}", i, Gfx.Hex(i), i + ArtStore.LandCount));
         var p = new PreviewData();
         p.Image = _c.Art.GetStatic(i, out string err);
         p.Editor = new GraphicEditor(_c, GKind.Static, i, Refresh);
@@ -208,9 +208,9 @@ public sealed class ArtProvider : ProviderBase, IThumbProvider
         if (i < _c.Tile.ItemCount)
         {
             var t = _c.Tile;
-            sb.AppendLine($"Tiledata-Name: {t.ItemName[i]}");
+            sb.AppendLine(Loc.F("Tiledata-Name: {0}", t.ItemName[i]));
             sb.AppendLine($"Flags: 0x{t.ItemFlags[i]:X}  {TileData.FlagText(t.ItemFlags[i])}");
-            sb.AppendLine($"Gewicht {t.Weight[i]}, Hoehe {t.Height[i]}, Layer {t.Layer[i]}, Menge {t.Count[i]}, AnimID {t.AnimId[i]}, Hue {t.Hue[i]}, Licht {t.Light[i]}");
+            sb.AppendLine(Loc.F("Gewicht {0}, Hoehe {1}, Layer {2}, Menge {3}, AnimID {4}, Hue {5}, Licht {6}", t.Weight[i], t.Height[i], t.Layer[i], t.Count[i], t.AnimId[i], t.Hue[i], t.Light[i]));
         }
         if (_c.Catalog.Items.TryGetValue(i, out var defs))
         {
@@ -234,7 +234,7 @@ public sealed class LandProvider : ProviderBase, IThumbProvider
 
     public LandProvider(Context c) => _c = c;
 
-    public override string[] Columns => new[] { "ID", "Hex", "Status", "Tiledata-Name", "TexID", "Flags" };
+    public override string[] Columns => new[] { "ID", "Hex", Loc.T("Status"), Loc.T("Tiledata-Name"), "TexID", "Flags" };
     public override int[] Widths => new[] { 60, 70, 60, 170, 60, 300 };
     public override int Count => ArtStore.LandCount;
     public override bool IsFree(int i) => !_c.Art.LandValid(i);
@@ -242,7 +242,7 @@ public sealed class LandProvider : ProviderBase, IThumbProvider
 
     public override string[] Row(int i) => new[]
     {
-        i.ToString(), Gfx.Hex(i), (IsFree(i) ? "frei" : "belegt") + (_c.Art.PendingLand.ContainsKey(i) ? "*" : ""), N(i),
+        i.ToString(), Gfx.Hex(i), (IsFree(i) ? Loc.T("frei") : Loc.T("belegt")) + (_c.Art.PendingLand.ContainsKey(i) ? "*" : ""), N(i),
         i < _c.Tile.LandCount ? _c.Tile.LandTex[i].ToString() : "",
         i < _c.Tile.LandCount ? TileData.FlagText(_c.Tile.LandFlags[i]) : "",
     };
@@ -250,8 +250,8 @@ public sealed class LandProvider : ProviderBase, IThumbProvider
     public override FilterDef[] Filters => new[]
     {
         StatusFilter(IsFree),
-        new FilterDef { Label = "Name", Options = new[] { "Alle", "Mit Name", "Ohne Name" }, Pass = (i, o) => o == 0 || ((N(i).Length > 0) == (o == 1)) },
-        new FilterDef { Label = "Textur", Options = new[] { "Alle", "Mit TexID", "Ohne" }, Pass = (i, o) => o == 0 || ((i < _c.Tile.LandCount && _c.Tile.LandTex[i] != 0) == (o == 1)) },
+        new FilterDef { Label = "Name", Options = new[] { Loc.T("Alle"), Loc.T("Mit Name"), Loc.T("Ohne Name") }, Pass = (i, o) => o == 0 || ((N(i).Length > 0) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Textur"), Options = new[] { Loc.T("Alle"), Loc.T("Mit TexID"), Loc.T("Ohne") }, Pass = (i, o) => o == 0 || ((i < _c.Tile.LandCount && _c.Tile.LandTex[i] != 0) == (o == 1)) },
     };
 
     public override string Summary
@@ -259,7 +259,7 @@ public sealed class LandProvider : ProviderBase, IThumbProvider
         get
         {
             int used = Enumerable.Range(0, Count).Count(i => !IsFree(i));
-            return $"{Count} Slots, {used} belegt, {Count - used} frei";
+            return Loc.F("{0} Slots, {1} belegt, {2} frei", Count, used, Count - used);
         }
     }
 
@@ -267,7 +267,7 @@ public sealed class LandProvider : ProviderBase, IThumbProvider
     {
         var p = new PreviewData { Image = _c.Art.GetLand(i, out string err) };
         p.Editor = new GraphicEditor(_c, GKind.Land, i, _ => { });
-        var sb = new StringBuilder($"Land-Tile {i} ({Gfx.Hex(i)})\n");
+        var sb = new StringBuilder(Loc.F("Land-Tile {0} ({1})\n", i, Gfx.Hex(i)));
         if (p.Image == null)
         {
             sb.AppendLine(err);
@@ -290,15 +290,15 @@ public sealed class GumpProvider : ProviderBase, IThumbProvider
 
     public GumpProvider(Context c) => _c = c;
 
-    public override string[] Columns => new[] { "ID", "Hex", "Status", "Groesse", "Bytes", "Bedeutung" };
+    public override string[] Columns => new[] { "ID", "Hex", Loc.T("Status"), Loc.T("Groesse"), "Bytes", Loc.T("Bedeutung") };
     public override int[] Widths => new[] { 60, 70, 60, 80, 80, 260 };
     public override int Count => _c.Art.GumpIdx.Count;
     public override bool IsFree(int i) => !_c.Art.GumpValid(i);
 
     private static string Meaning(int i) => i switch
     {
-        >= 60000 => $"Paperdoll weiblich, AnimID {i - 60000}",
-        >= 50000 => $"Paperdoll maennlich, AnimID {i - 50000}",
+        >= 60000 => Loc.F("Paperdoll weiblich, AnimID {0}", i - 60000),
+        >= 50000 => Loc.F("Paperdoll maennlich, AnimID {0}", i - 50000),
         _ => "",
     };
 
@@ -307,7 +307,7 @@ public sealed class GumpProvider : ProviderBase, IThumbProvider
         var (w, h) = _c.Art.GumpSize(i);
         return new[]
         {
-            i.ToString(), Gfx.Hex(i), (IsFree(i) ? "frei" : "belegt") + (_c.Art.PendingGump.ContainsKey(i) ? "*" : ""), IsFree(i) ? "" : $"{w}x{h}",
+            i.ToString(), Gfx.Hex(i), (IsFree(i) ? Loc.T("frei") : Loc.T("belegt")) + (_c.Art.PendingGump.ContainsKey(i) ? "*" : ""), IsFree(i) ? "" : $"{w}x{h}",
             IsFree(i) ? "" : _c.Art.GumpLength(i).ToString(), Meaning(i),
         };
     }
@@ -317,8 +317,8 @@ public sealed class GumpProvider : ProviderBase, IThumbProvider
         StatusFilter(IsFree),
         new FilterDef
         {
-            Label = "Bereich",
-            Options = new[] { "Alle", "< 50000", "50000-59999 (Paperdoll m)", ">= 60000 (Paperdoll w)" },
+            Label = Loc.T("Bereich"),
+            Options = new[] { Loc.T("Alle"), "< 50000", Loc.T("50000-59999 (Paperdoll m)"), Loc.T(">= 60000 (Paperdoll w)") },
             Pass = (i, o) => o switch { 0 => true, 1 => i < 50000, 2 => i >= 50000 && i < 60000, _ => i >= 60000 },
         },
     };
@@ -328,7 +328,7 @@ public sealed class GumpProvider : ProviderBase, IThumbProvider
         get
         {
             int used = Enumerable.Range(0, Count).Count(i => !IsFree(i));
-            return $"{Count} Slots, {used} belegt, {Count - used} frei";
+            return Loc.F("{0} Slots, {1} belegt, {2} frei", Count, used, Count - used);
         }
     }
 
@@ -350,9 +350,9 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
 
     private static readonly (int bit, string name)[] ProblemNames =
     {
-        (PArtNoTile, "Art ohne Tiledata"), (PTileNoArt, "Tiledata ohne Art"), (PWearNoAnim, "Wearable ohne AnimID"),
-        (PAnimNoMul, "AnimID ohne Animation"), (PNoPaperdoll, "Paperdoll-Gump fehlt"), (PWearNoLayer, "Wearable ohne Layer"),
-        (PSphereNoName, "ITEMDEF ohne Tiledata-Name"),
+        (PArtNoTile, Loc.T("Art ohne Tiledata")), (PTileNoArt, Loc.T("Tiledata ohne Art")), (PWearNoAnim, Loc.T("Wearable ohne AnimID")),
+        (PAnimNoMul, Loc.T("AnimID ohne Animation")), (PNoPaperdoll, Loc.T("Paperdoll-Gump fehlt")), (PWearNoLayer, Loc.T("Wearable ohne Layer")),
+        (PSphereNoName, Loc.T("ITEMDEF ohne Tiledata-Name")),
     };
 
     private readonly int[] _problems;
@@ -510,7 +510,7 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
     public Bitmap? Thumb(int i) => IsLand(i) ? _c.Art.GetLand(i, out _) : _c.Art.GetStatic(Id(i), out _);
     public string ThumbLabel(int i) => (IsLand(i) ? "L " : "I ") + Gfx.Hex(Id(i));
 
-    public override string[] Columns => new[] { "Typ", "ID", "Hex", "Name", "Art", "Problem", "Flags", "Gew.", "Hoehe", "Layer", "AnimID", "Hue", "Menge", "Licht" };
+    public override string[] Columns => new[] { Loc.T("Typ"), "ID", "Hex", "Name", "Art", Loc.T("Problem"), "Flags", Loc.T("Gew."), Loc.T("Hoehe"), "Layer", "AnimID", "Hue", Loc.T("Menge"), Loc.T("Licht") };
     public override int[] Widths => new[] { 45, 60, 70, 150, 40, 200, 100, 45, 50, 45, 60, 50, 60, 50 };
     public override int Count => _c.Tile.LandCount + _c.Tile.ItemCount;
     private bool IsLand(int i) => i < _c.Tile.LandCount;
@@ -523,11 +523,11 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
         int id = Id(i);
         if (IsLand(i))
         {
-            return new[] { "Land" + Mark(i), id.ToString(), Gfx.Hex(id), t.LandName[id], _c.Art.LandValid(id) ? "ja" : "-", ProblemText(i), "0x" + t.LandFlags[id].ToString("X"), "", "", "", "", "", "", "" };
+            return new[] { "Land" + Mark(i), id.ToString(), Gfx.Hex(id), t.LandName[id], _c.Art.LandValid(id) ? Loc.T("ja") : "-", ProblemText(i), "0x" + t.LandFlags[id].ToString("X"), "", "", "", "", "", "", "" };
         }
         return new[]
         {
-            "Item" + Mark(i), id.ToString(), Gfx.Hex(id), t.ItemName[id], _c.Art.StaticValid(id) ? "ja" : "-", ProblemText(i), "0x" + t.ItemFlags[id].ToString("X"),
+            "Item" + Mark(i), id.ToString(), Gfx.Hex(id), t.ItemName[id], _c.Art.StaticValid(id) ? Loc.T("ja") : "-", ProblemText(i), "0x" + t.ItemFlags[id].ToString("X"),
             t.Weight[id].ToString(), t.Height[id].ToString(), t.Layer[id].ToString(), t.AnimId[id] != 0 ? t.AnimId[id].ToString() : "",
             t.Hue[id] != 0 ? t.Hue[id].ToString() : "", t.Count[id] != 0 ? t.Count[id].ToString() : "", t.Light[id] != 0 ? t.Light[id].ToString() : "",
         };
@@ -535,12 +535,12 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
 
     public override FilterDef[] Filters => new[]
     {
-        new FilterDef { Label = "Typ", Options = new[] { "Alle", "Land", "Item" }, Pass = (i, o) => o == 0 || (IsLand(i) == (o == 1)) },
-        new FilterDef { Label = "Eintrag", Options = new[] { "Alle", "Leer (kein Name/Flags)", "Gefuellt" }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Typ"), Options = new[] { Loc.T("Alle"), "Land", "Item" }, Pass = (i, o) => o == 0 || (IsLand(i) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Eintrag"), Options = new[] { Loc.T("Alle"), Loc.T("Leer (kein Name/Flags)"), Loc.T("Gefuellt") }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
         new FilterDef
         {
-            Label = "Problem",
-            Options = new[] { "Alle", "Irgendein Problem", "Kein Problem" }.Concat(ProblemNames.Select(x => x.name)).ToArray(),
+            Label = Loc.T("Problem"),
+            Options = new[] { Loc.T("Alle"), Loc.T("Irgendein Problem"), Loc.T("Kein Problem") }.Concat(ProblemNames.Select(x => x.name)).ToArray(),
             Pass = (i, o) => o switch
             {
                 0 => true,
@@ -552,7 +552,7 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
         new FilterDef
         {
             Label = "Flag",
-            Options = new[] { "Alle" }.Concat(TileData.FlagNames.Select(x => x.name)).ToArray(),
+            Options = new[] { Loc.T("Alle") }.Concat(TileData.FlagNames.Select(x => x.name)).ToArray(),
             Pass = (i, o) =>
             {
                 if (o == 0)
@@ -563,8 +563,8 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
                 return (f & TileData.FlagNames[o - 1].bit) != 0;
             },
         },
-        new FilterDef { Label = "Art", Options = new[] { "Alle", "Mit Art", "Ohne Art" }, Pass = (i, o) => o == 0 || ((IsLand(i) ? _c.Art.LandValid(i) : _c.Art.StaticValid(Id(i))) == (o == 1)) },
-        new FilterDef { Label = "Sphere", Options = new[] { "Alle", "Mit ITEMDEF", "Ohne ITEMDEF" }, Pass = (i, o) => o == 0 || (!IsLand(i) && _c.Catalog.Items.ContainsKey(Id(i)) == (o == 1)) },
+        new FilterDef { Label = "Art", Options = new[] { Loc.T("Alle"), Loc.T("Mit Art"), Loc.T("Ohne Art") }, Pass = (i, o) => o == 0 || ((IsLand(i) ? _c.Art.LandValid(i) : _c.Art.StaticValid(Id(i))) == (o == 1)) },
+        new FilterDef { Label = "Sphere", Options = new[] { Loc.T("Alle"), Loc.T("Mit ITEMDEF"), Loc.T("Ohne ITEMDEF") }, Pass = (i, o) => o == 0 || (!IsLand(i) && _c.Catalog.Items.ContainsKey(Id(i)) == (o == 1)) },
     };
 
     public override string Summary
@@ -572,7 +572,7 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
         get
         {
             var parts = ProblemNames.Select(x => $"{x.name}: {_problems.Count(p => (p & x.bit) != 0)}");
-            return $"{_c.Tile.LandCount} Land + {_c.Tile.ItemCount} Items, Format {(_c.Tile.IsOld ? "alt (32-Bit)" : "neu (64-Bit)")}  |  {string.Join("  |  ", parts)}";
+            return Loc.F("{0} Land + {1} Items, Format {2}  |  {3}", _c.Tile.LandCount, _c.Tile.ItemCount, _c.Tile.IsOld ? Loc.T("alt (32-Bit)") : Loc.T("neu (64-Bit)"), string.Join("  |  ", parts));
         }
     }
 
@@ -593,14 +593,14 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
         {
             p.Image = _c.Art.GetStatic(id, out _);
             sb.AppendLine($"Item {id} ({Gfx.Hex(id)})");
-            sb.AppendLine($"Name:    {(t.ItemName[id].Length > 0 ? t.ItemName[id] : "(leer)")}");
-            sb.AppendLine($"Gewicht: {t.Weight[id]}{(t.Weight[id] == 255 ? " (nicht aufhebbar)" : "")}");
-            sb.AppendLine($"Hoehe:   {t.Height[id]}");
+            sb.AppendLine($"Name:    {(t.ItemName[id].Length > 0 ? t.ItemName[id] : Loc.T("(leer)"))}");
+            sb.AppendLine(Loc.F("Gewicht: {0}{1}", t.Weight[id], t.Weight[id] == 255 ? Loc.T(" (nicht aufhebbar)") : ""));
+            sb.AppendLine(Loc.F("Hoehe:   {0}", t.Height[id]));
             sb.AppendLine($"Layer:   {t.Layer[id]}");
-            sb.AppendLine($"Menge:   {t.Count[id]}");
+            sb.AppendLine(Loc.F("Menge:   {0}", t.Count[id]));
             sb.AppendLine($"AnimID:  {t.AnimId[id]}");
             sb.AppendLine($"Hue:     {t.Hue[id]}");
-            sb.AppendLine($"Licht:   {t.Light[id]}");
+            sb.AppendLine(Loc.F("Licht:   {0}", t.Light[id]));
             sb.AppendLine($"Flags:   0x{t.ItemFlags[id]:X}");
             foreach (var (bit, name) in TileData.FlagNames)
             {
@@ -617,7 +617,7 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
                     var g = _c.Art.GetGump(baseId + anim, out _);
                     if (g != null)
                     {
-                        p.Extras.Add((baseId == 50000 ? $"Paperdoll m ({baseId + anim})" : $"Paperdoll w ({baseId + anim})", g));
+                        p.Extras.Add((baseId == 50000 ? Loc.F("Paperdoll m ({0})", baseId + anim) : Loc.F("Paperdoll w ({0})", baseId + anim), g));
                     }
                 }
             }
@@ -633,7 +633,7 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
         if (_problems[i] != 0)
         {
             sb.AppendLine();
-            sb.AppendLine("PROBLEME:");
+            sb.AppendLine(Loc.T("PROBLEME:"));
             foreach (var (bit, name) in ProblemNames)
             {
                 if ((_problems[i] & bit) != 0)
@@ -657,7 +657,7 @@ public sealed class RadarProvider : ProviderBase, IThumbProvider
 
     public RadarProvider(Context c) => _c = c;
 
-    public override string[] Columns => new[] { "Index", "Typ", "ID", "Hex", "Farbe (16 Bit)", "RGB", "Status" };
+    public override string[] Columns => new[] { "Index", Loc.T("Typ"), "ID", "Hex", Loc.T("Farbe (16 Bit)"), "RGB", Loc.T("Status") };
     public override int[] Widths => new[] { 65, 45, 60, 70, 90, 80, 90 };
     public override int Count => _col.Length;
     public override bool IsFree(int i) => _col[i] == 0;
@@ -667,16 +667,16 @@ public sealed class RadarProvider : ProviderBase, IThumbProvider
         bool land = i < ArtStore.LandCount;
         int id = land ? i : i - ArtStore.LandCount;
         uint rgb = Gfx.C16(_col[i]) & 0xFFFFFF;
-        return new[] { i.ToString(), land ? "Land" : "Item", id.ToString(), Gfx.Hex(id), "0x" + _col[i].ToString("X4"), "#" + rgb.ToString("X6"), _col[i] == 0 ? "schwarz/leer" : "" };
+        return new[] { i.ToString(), land ? "Land" : "Item", id.ToString(), Gfx.Hex(id), "0x" + _col[i].ToString("X4"), "#" + rgb.ToString("X6"), _col[i] == 0 ? Loc.T("schwarz/leer") : "" };
     }
 
     public override FilterDef[] Filters => new[]
     {
-        new FilterDef { Label = "Typ", Options = new[] { "Alle", "Land", "Item" }, Pass = (i, o) => o == 0 || ((i < ArtStore.LandCount) == (o == 1)) },
-        new FilterDef { Label = "Farbe", Options = new[] { "Alle", "Schwarz/leer", "Gefuellt" }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Typ"), Options = new[] { Loc.T("Alle"), "Land", "Item" }, Pass = (i, o) => o == 0 || ((i < ArtStore.LandCount) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Farbe"), Options = new[] { Loc.T("Alle"), Loc.T("Schwarz/leer"), Loc.T("Gefuellt") }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
     };
 
-    public override string Summary => $"{_col.Length} Eintraege";
+    public override string Summary => Loc.F("{0} Eintraege", _col.Length);
 
     public override PreviewData Preview(int i)
     {
@@ -688,7 +688,7 @@ public sealed class RadarProvider : ProviderBase, IThumbProvider
             Image = land ? _c.Art.GetLand(id, out _) : _c.Art.GetStatic(id, out _),
         };
         p.Editor = new RadarEditor(_c, i);
-        p.Info = $"Radarfarbe {(land ? "Land" : "Item")} {id} ({Gfx.Hex(id)}): 0x{_col[i]:X4}";
+        p.Info = Loc.F("Radarfarbe {0} {1} ({2}): 0x{3:X4}", land ? "Land" : "Item", id, Gfx.Hex(id), _col[i]);
         return p;
     }
 }
@@ -714,7 +714,7 @@ public sealed class HuesProvider : ProviderBase, IThumbProvider
 
     public HuesProvider(Context c) => _c = c;
 
-    public override string[] Columns => new[] { "Hue", "Hex", "Name", "TabelleStart", "TabelleEnde", "Farbe 1", "Farbe 32" };
+    public override string[] Columns => new[] { "Hue", "Hex", "Name", Loc.T("TabelleStart"), Loc.T("TabelleEnde"), Loc.T("Farbe 1"), Loc.T("Farbe 32") };
     public override int[] Widths => new[] { 55, 65, 200, 85, 85, 70, 70 };
     public override int Count => _c.Hues.Count;
     public override bool IsFree(int i) => _c.Hues.IsFree(i);
@@ -727,16 +727,16 @@ public sealed class HuesProvider : ProviderBase, IThumbProvider
 
     public override FilterDef[] Filters => new[]
     {
-        new FilterDef { Label = "Eintrag", Options = new[] { "Alle", "Leer", "Gefuellt" }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
+        new FilterDef { Label = Loc.T("Eintrag"), Options = new[] { Loc.T("Alle"), Loc.T("Leer"), Loc.T("Gefuellt") }, Pass = (i, o) => o == 0 || (IsFree(i) == (o == 1)) },
     };
 
-    public override string Summary => $"{_c.Hues.Count} Hues ({_c.Hues.Count / 8} Gruppen), {Enumerable.Range(0, Count).Count(IsFree)} leer";
+    public override string Summary => Loc.F("{0} Hues ({1} Gruppen), {2} leer", _c.Hues.Count, _c.Hues.Count / 8, Enumerable.Range(0, Count).Count(IsFree));
 
     public override PreviewData Preview(int i) => new()
     {
         Editor = new HueEditor(_c, i),
         Palette = _c.Hues.Colors[i].Select(Gfx.C16Color).ToArray(),
-        Info = $"Hue {i} ({Gfx.Hex(i)}): \"{_c.Hues.Names[i]}\"\nTabelle {_c.Hues.TableStart[i]} - {_c.Hues.TableEnd[i]}\n" +
+        Info = Loc.F("Hue {0} ({1}): \"{2}\"\nTabelle {3} - {4}\n", i, Gfx.Hex(i), _c.Hues.Names[i], _c.Hues.TableStart[i], _c.Hues.TableEnd[i]) +
                string.Join(' ', _c.Hues.Colors[i].Select(x => x.ToString("X4"))),
     };
 }
@@ -747,24 +747,24 @@ public sealed class SkillsProvider : ProviderBase
 
     public SkillsProvider(Context c) => _c = c;
 
-    public override string[] Columns => new[] { "ID", "Hex", "Name", "Button", "Status" };
+    public override string[] Columns => new[] { "ID", "Hex", "Name", "Button", Loc.T("Status") };
     public override int[] Widths => new[] { 55, 55, 240, 60, 70 };
     public override int Count => _c.Skills.Count;
     public override bool IsFree(int i) => !_c.Skills.Valid[i];
 
     public override string[] Row(int i) => new[]
     {
-        i.ToString(), Gfx.Hex(i), _c.Skills.Names[i], _c.Skills.Valid[i] ? (_c.Skills.Button[i] ? "ja" : "nein") : "", IsFree(i) ? "frei" : "belegt",
+        i.ToString(), Gfx.Hex(i), _c.Skills.Names[i], _c.Skills.Valid[i] ? (_c.Skills.Button[i] ? Loc.T("ja") : Loc.T("nein")) : "", IsFree(i) ? Loc.T("frei") : Loc.T("belegt"),
     };
 
     public override FilterDef[] Filters => new[] { StatusFilter(IsFree) };
 
-    public override string Summary => $"{Count} Slots, {Enumerable.Range(0, Count).Count(i => !IsFree(i))} belegt";
+    public override string Summary => Loc.F("{0} Slots, {1} belegt", Count, Enumerable.Range(0, Count).Count(i => !IsFree(i)));
 
     public override PreviewData Preview(int i) => new()
     {
         Editor = new SkillEditor(_c, i),
-        Info = $"Skill {i} ({Gfx.Hex(i)}): {_c.Skills.Names[i]}\nSkill-Button: {(_c.Skills.Button[i] ? "ja" : "nein")}",
+        Info = Loc.F("Skill {0} ({1}): {2}\nSkill-Button: {3}", i, Gfx.Hex(i), _c.Skills.Names[i], _c.Skills.Button[i] ? Loc.T("ja") : Loc.T("nein")),
     };
 }
 
@@ -774,14 +774,14 @@ public sealed class ClilocProvider : ProviderBase
 
     public ClilocProvider(ClilocData d) => _d = d;
 
-    public override string[] Columns => new[] { "Nummer", "Hex", "Text" };
+    public override string[] Columns => new[] { Loc.T("Nummer"), "Hex", "Text" };
     public override int[] Widths => new[] { 80, 80, 700 };
     public override int Count => _d.Numbers.Length;
     public override int KeyOf(int i) => _d.Numbers[i];
     public override string[] Row(int i) => new[] { _d.Numbers[i].ToString(), Gfx.Hex(_d.Numbers[i]), _d.Texts[i] };
     public override string SearchText(int i) => $"{_d.Numbers[i]} 0x{_d.Numbers[i]:x} {_d.Texts[i]}".ToLowerInvariant();
 
-    public override string Summary => _d.Error.Length > 0 ? "Fehler: " + _d.Error : $"{Count} Eintraege{(_d.Compressed ? " (BWT-komprimiert)" : "")}";
+    public override string Summary => _d.Error.Length > 0 ? Loc.T("Fehler: ") + _d.Error : Loc.F("{0} Eintraege{1}", Count, _d.Compressed ? Loc.T(" (BWT-komprimiert)") : "");
 
     public override PreviewData Preview(int i) => new()
     {
@@ -896,8 +896,8 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
     }
 
     public override string[] Columns => _mode == BodyMode.Monster
-        ? new[] { "Body", "Hex", "Typ", "Status", "Quellen", "Aktionen", "Sphere-CHARDEF", "#", "Item-Anim" }
-        : new[] { "AnimID", "Hex", "Status", "Quellen", "Aktionen", "Items", "Beispiele (Tiledata)", "Sphere-ITEMDEF" };
+        ? new[] { "Body", "Hex", Loc.T("Typ"), Loc.T("Status"), Loc.T("Quellen"), Loc.T("Aktionen"), "Sphere-CHARDEF", "#", "Item-Anim" }
+        : new[] { "AnimID", "Hex", Loc.T("Status"), Loc.T("Quellen"), Loc.T("Aktionen"), "Items", Loc.T("Beispiele (Tiledata)"), "Sphere-ITEMDEF" };
 
     public override int[] Widths => _mode == BodyMode.Monster
         ? new[] { 55, 65, 110, 70, 110, 60, 330, 30, 70 }
@@ -910,10 +910,10 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
     public override string[] Row(int i)
     {
         var r = _rows[i];
-        string status = r.Sources.Count > 0 ? "belegt" : (r.CharCount > 0 ? "FEHLT" : "frei");
+        string status = r.Sources.Count > 0 ? Loc.T("belegt") : (r.CharCount > 0 ? Loc.T("FEHLT") : Loc.T("frei"));
         if (_mode == BodyMode.Monster)
         {
-            return new[] { r.Id.ToString(), Gfx.Hex(r.Id), AnimStore.TypeName(r.Id), status, r.Short, r.Actions > 0 ? r.Actions.ToString() : "", r.Names, r.CharCount > 0 ? r.CharCount.ToString() : "", r.IsItemAnim ? "ja" : "" };
+            return new[] { r.Id.ToString(), Gfx.Hex(r.Id), AnimStore.TypeName(r.Id), status, r.Short, r.Actions > 0 ? r.Actions.ToString() : "", r.Names, r.CharCount > 0 ? r.CharCount.ToString() : "", r.IsItemAnim ? Loc.T("ja") : "" };
         }
         return new[] { r.Id.ToString(), Gfx.Hex(r.Id), status, r.Short, r.Actions > 0 ? r.Actions.ToString() : "", r.ItemUsers.ToString(), r.ItemExample, r.ItemDefs };
     }
@@ -930,19 +930,19 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
         {
             var list = new List<FilterDef>
             {
-                new FilterDef { Label = "Status", Options = new[] { "Alle", "Belegt", "Frei/fehlt", "Nur FEHLT (Chardef ohne Animation)" }, Pass = (i, o) => o switch { 0 => true, 1 => !IsFree(i), 2 => IsFree(i), _ => IsFree(i) && _rows[i].CharCount > 0 } },
+                new FilterDef { Label = Loc.T("Status"), Options = new[] { Loc.T("Alle"), Loc.T("Belegt"), Loc.T("Frei/fehlt"), Loc.T("Nur FEHLT (Chardef ohne Animation)") }, Pass = (i, o) => o switch { 0 => true, 1 => !IsFree(i), 2 => IsFree(i), _ => IsFree(i) && _rows[i].CharCount > 0 } },
                 new FilterDef
                 {
-                    Label = "Quelle",
-                    Options = new[] { "Alle", "Nur Mul", "Nur UOP", "Mul + UOP" },
+                    Label = Loc.T("Quelle"),
+                    Options = new[] { Loc.T("Alle"), Loc.T("Nur Mul"), Loc.T("Nur UOP"), "Mul + UOP" },
                     Pass = (i, o) => o switch { 0 => true, 1 => _rows[i].HasMul && !_rows[i].HasUop, 2 => _rows[i].HasUop && !_rows[i].HasMul, _ => _rows[i].HasMul && _rows[i].HasUop },
                 },
             };
             if (_mode == BodyMode.Monster)
             {
-                list.Add(new FilterDef { Label = "Chardef", Options = new[] { "Alle", "Mit Chardef", "Ohne Chardef" }, Pass = (i, o) => o == 0 || ((_rows[i].CharCount > 0) == (o == 1)) });
-                list.Add(new FilterDef { Label = "Typ", Options = new[] { "Alle", "Hoch (<200)", "Niedrig (200-399)", "Menschlich (400+)" }, Pass = (i, o) => o == 0 || (o == 1 ? _rows[i].Id < 200 : o == 2 ? _rows[i].Id is >= 200 and < 400 : _rows[i].Id >= 400) });
-                list.Add(new FilterDef { Label = "Item-AnimID", Options = new[] { "Alle", "Nur Item-AnimIDs", "Ohne Item-AnimIDs" }, Pass = (i, o) => o == 0 || (_rows[i].IsItemAnim == (o == 1)) });
+                list.Add(new FilterDef { Label = "Chardef", Options = new[] { Loc.T("Alle"), Loc.T("Mit Chardef"), Loc.T("Ohne Chardef") }, Pass = (i, o) => o == 0 || ((_rows[i].CharCount > 0) == (o == 1)) });
+                list.Add(new FilterDef { Label = Loc.T("Typ"), Options = new[] { Loc.T("Alle"), Loc.T("Hoch (<200)"), Loc.T("Niedrig (200-399)"), Loc.T("Menschlich (400+)") }, Pass = (i, o) => o == 0 || (o == 1 ? _rows[i].Id < 200 : o == 2 ? _rows[i].Id is >= 200 and < 400 : _rows[i].Id >= 400) });
+                list.Add(new FilterDef { Label = "Item-AnimID", Options = new[] { Loc.T("Alle"), Loc.T("Nur Item-AnimIDs"), Loc.T("Ohne Item-AnimIDs") }, Pass = (i, o) => o == 0 || (_rows[i].IsItemAnim == (o == 1)) });
             }
             return list.ToArray();
         }
@@ -954,7 +954,7 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
         {
             int used = _rows.Count(r => r.Sources.Count > 0);
             int missing = _rows.Count(r => r.Sources.Count == 0 && r.CharCount > 0);
-            return $"{_rows.Count} Zeilen, {used} mit Animation, {missing} Chardefs ohne Animation";
+            return Loc.F("{0} Zeilen, {1} mit Animation, {2} Chardefs ohne Animation", _rows.Count, used, missing);
         }
     }
 
@@ -978,7 +978,7 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
         }
         if (r.Sources.Count == 0)
         {
-            sb.AppendLine("Keine Animationsdaten in anim.mul, anim2-6.mul oder UOP.");
+            sb.AppendLine(Loc.T("Keine Animationsdaten in anim.mul, anim2-6.mul oder UOP."));
         }
         if (_c.Catalog.Chars.TryGetValue(r.Id, out var defs))
         {
@@ -990,7 +990,7 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
         }
         if (r.ItemUsers > 0)
         {
-            sb.AppendLine($"Item-AnimID, benutzt von {r.ItemUsers} Items, z.B.: {r.ItemExample}");
+            sb.AppendLine(Loc.F("Item-AnimID, benutzt von {0} Items, z.B.: {1}", r.ItemUsers, r.ItemExample));
             var users = Enumerable.Range(0, _c.Tile.ItemCount).Where(x => _c.Tile.AnimId[x] == r.Id).Take(12).ToList();
             foreach (int u in users)
             {
@@ -1002,12 +1002,12 @@ public sealed class BodyAnimProvider : ProviderBase, IThumbProvider
             var gm = _c.Art.GetGump(50000 + r.Id, out _);
             if (gm != null)
             {
-                p.Extras.Add(($"Paperdoll m (Gump {50000 + r.Id})", gm));
+                p.Extras.Add((Loc.F("Paperdoll m (Gump {0})", 50000 + r.Id), gm));
             }
             var gf = _c.Art.GetGump(60000 + r.Id, out _);
             if (gf != null)
             {
-                p.Extras.Add(($"Paperdoll w (Gump {60000 + r.Id})", gf));
+                p.Extras.Add((Loc.F("Paperdoll w (Gump {0})", 60000 + r.Id), gf));
             }
         }
         p.Anim = new AnimRef { Store = _c.Anim, Sources = r.Sources, Equipment = _mode == BodyMode.ItemAnim };
@@ -1048,20 +1048,20 @@ public sealed class RawAnimProvider : ProviderBase, IThumbProvider
         }
     }
 
-    public override string[] Columns => new[] { "ID", "Hex", "Typ", "Status", "Aktionen", "Aktions-Nummern", "Sphere (gleiche Nr. als Body)" };
+    public override string[] Columns => new[] { "ID", "Hex", Loc.T("Typ"), Loc.T("Status"), Loc.T("Aktionen"), Loc.T("Aktions-Nummern"), Loc.T("Sphere (gleiche Nr. als Body)") };
     public override int[] Widths => new[] { 55, 65, 110, 60, 60, 220, 300 };
     public override int Count => _count;
     public override bool IsFree(int i) => _actions[i].Length == 0;
 
     public override string[] Row(int i) => new[]
     {
-        i.ToString(), Gfx.Hex(i), AnimStore.TypeName(i), IsFree(i) ? "frei" : "belegt", _actions[i].Length > 0 ? _actions[i].Length.ToString() : "",
+        i.ToString(), Gfx.Hex(i), AnimStore.TypeName(i), IsFree(i) ? Loc.T("frei") : Loc.T("belegt"), _actions[i].Length > 0 ? _actions[i].Length.ToString() : "",
         string.Join(",", _actions[i]), _c.Catalog.CharNames(i),
     };
 
     public override FilterDef[] Filters => new[] { StatusFilter(IsFree) };
 
-    public override string Summary => $"{_count} Slots, {_actions.Count(a => a.Length > 0)} belegt (Datei-Index; bodyconv.def/body.def werden hier NICHT angewendet)";
+    public override string Summary => Loc.F("{0} Slots, {1} belegt (Datei-Index; bodyconv.def/body.def werden hier NICHT angewendet)", _count, _actions.Count(a => a.Length > 0));
 
     public override PreviewData Preview(int i)
     {
@@ -1074,7 +1074,7 @@ public sealed class RawAnimProvider : ProviderBase, IThumbProvider
             Label = _file < 0 ? $"UOP Body {i}" : $"{AnimStore.FileNames[_file]}.mul Index {i}",
             Actions = _actions[i],
         };
-        p.Info = $"{src.Label}\n{(IsFree(i) ? "Slot ist frei." : _actions[i].Length + " Aktionen")}";
+        p.Info = $"{src.Label}\n{(IsFree(i) ? Loc.T("Slot ist frei.") : Loc.F("{0} Aktionen", _actions[i].Length))}";
         if (!IsFree(i))
         {
             p.Anim = new AnimRef { Store = _c.Anim, Sources = new List<AnimSource> { src }, Equipment = false };

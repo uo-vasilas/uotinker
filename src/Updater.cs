@@ -76,7 +76,7 @@ public static class Updater
     {
         if (info.Sha256.Length == 0 || info.Url.Length == 0)
         {
-            throw new InvalidOperationException("Das Release enthält keine Prüfsumme; das Update wird nicht geladen.");
+            throw new InvalidOperationException(Loc.T("Das Release enthält keine Prüfsumme; das Update wird nicht geladen."));
         }
         string path = Path.Combine(Path.GetTempPath(), info.Name);
         using (var resp = await Http.GetAsync(info.Url, HttpCompletionOption.ResponseHeadersRead))
@@ -106,7 +106,7 @@ public static class Updater
         if (actual != info.Sha256)
         {
             File.Delete(path);
-            throw new InvalidOperationException("Die Prüfsumme der geladenen Datei stimmt nicht mit der des Releases überein. Das Update wurde verworfen.");
+            throw new InvalidOperationException(Loc.T("Die Prüfsumme der geladenen Datei stimmt nicht mit der des Releases überein. Das Update wurde verworfen."));
         }
         return path;
     }

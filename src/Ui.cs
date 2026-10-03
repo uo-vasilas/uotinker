@@ -113,7 +113,7 @@ public sealed class PreviewHost : UserControl
     private readonly ComboBox _dir = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 50 };
     private readonly ComboBox _zoom = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 80 };
     private readonly ComboBox _bg = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 90 };
-    private readonly CheckBox _play = new() { Text = "Abspielen", Checked = true, AutoSize = true };
+    private readonly CheckBox _play = new() { Text = Loc.T("Abspielen"), Checked = true, AutoSize = true };
     private readonly System.Windows.Forms.Timer _timer = new() { Interval = 110 };
     private AnimRef? _anim;
     private bool _busy;
@@ -121,8 +121,8 @@ public sealed class PreviewHost : UserControl
 
     private static readonly (string, Color)[] Bgs =
     {
-        ("Standard", Theme.Card), ("Schwarz", Color.Black), ("Weiss", Color.White),
-        ("Hellgrau", Color.Silver), ("Magenta", Color.Magenta),
+        (Loc.T("Standard"), Theme.Card), (Loc.T("Schwarz"), Color.Black), (Loc.T("Weiss"), Color.White),
+        (Loc.T("Hellgrau"), Color.Silver), ("Magenta", Color.Magenta),
     };
 
     public PreviewHost()
@@ -141,11 +141,11 @@ public sealed class PreviewHost : UserControl
         }
         _dir.SelectedIndex = 0;
 
-        _bar.Controls.Add(Lbl("Quelle")); _bar.Controls.Add(_src);
-        _bar.Controls.Add(Lbl("Aktion")); _bar.Controls.Add(_act);
-        _bar.Controls.Add(Lbl("Richtung")); _bar.Controls.Add(_dir);
+        _bar.Controls.Add(Lbl(Loc.T("Quelle"))); _bar.Controls.Add(_src);
+        _bar.Controls.Add(Lbl(Loc.T("Aktion"))); _bar.Controls.Add(_act);
+        _bar.Controls.Add(Lbl(Loc.T("Richtung"))); _bar.Controls.Add(_dir);
         _bar.Controls.Add(Lbl("Zoom")); _bar.Controls.Add(_zoom);
-        _bar.Controls.Add(Lbl("Hintergrund")); _bar.Controls.Add(_bg);
+        _bar.Controls.Add(Lbl(Loc.T("Hintergrund"))); _bar.Controls.Add(_bg);
         _bar.Controls.Add(_play);
 
         Controls.Add(_canvas);
@@ -256,13 +256,13 @@ public sealed class PreviewHost : UserControl
         {
             return;
         }
-        int prev = _act.SelectedItem is string s && int.TryParse(s.Replace("Aktion ", ""), out int pa) ? pa : -1;
+        int prev = _act.SelectedItem is string s && int.TryParse(s[(s.LastIndexOf(' ') + 1)..], out int pa) ? pa : -1;
         _busy = true;
         _act.Items.Clear();
         var src = _anim.Sources[_src.SelectedIndex];
         foreach (int a in src.Actions)
         {
-            _act.Items.Add($"Aktion {a}");
+            _act.Items.Add(Loc.F("Aktion {0}", a));
         }
         int sel = Array.IndexOf(src.Actions, prev);
         if (sel < 0)
@@ -286,7 +286,7 @@ public sealed class PreviewHost : UserControl
         _canvas.SetFrames(frames);
         if (frames.Count == 0 || frames.All(f => f.Bmp == null))
         {
-            _info.AppendText($"\r\n[{src.Label}, Aktion {action}, Richtung {_dir.SelectedIndex}] keine Frames. {err}");
+            _info.AppendText(Loc.F("\r\n[{0}, Aktion {1}, Richtung {2}] keine Frames. {3}", src.Label, action, _dir.SelectedIndex, err));
         }
         _timer.Enabled = _play.Checked && frames.Count > 1;
     }
@@ -322,7 +322,7 @@ public sealed class BrowserControl : UserControl
     {
         _p = p;
         var top = new FlowLayoutPanel { Dock = DockStyle.Top, AutoSize = true, WrapContents = true, Padding = new Padding(4) };
-        top.Controls.Add(new Label { Text = "Suche:", AutoSize = true, Margin = new Padding(3, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = Loc.T("Suche:"), AutoSize = true, Margin = new Padding(3, 6, 0, 0) });
         top.Controls.Add(_txt);
         foreach (var f in p.Filters)
         {
@@ -334,10 +334,10 @@ public sealed class BrowserControl : UserControl
             _combos.Add(cb);
             top.Controls.Add(cb);
         }
-        top.Controls.Add(new Label { Text = "Gehe zu ID:", AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
+        top.Controls.Add(new Label { Text = Loc.T("Gehe zu ID:"), AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
         top.Controls.Add(_goto);
         top.Controls.Add(_count);
-        var csv = Theme.FlatButton("CSV exportieren");
+        var csv = Theme.FlatButton(Loc.T("CSV exportieren"));
         csv.Height = 26;
         csv.Width = 120;
         csv.Margin = new Padding(10, 2, 0, 0);
@@ -363,13 +363,13 @@ public sealed class BrowserControl : UserControl
             _grid.Selected += OnGridSelect;
             sc.Panel1.Controls.Add(_grid);
 
-            _mode.Items.AddRange(new object[] { "Raster", "Liste" });
+            _mode.Items.AddRange(new object[] { Loc.T("Raster"), Loc.T("Liste") });
             _mode.SelectedIndex = 0;
             _cellSize.Items.AddRange(new object[] { "48", "64", "96", "128", "192" });
             _cellSize.SelectedIndex = 2;
-            top.Controls.Add(new Label { Text = "Ansicht:", AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
+            top.Controls.Add(new Label { Text = Loc.T("Ansicht:"), AutoSize = true, Margin = new Padding(10, 6, 0, 0) });
             top.Controls.Add(_mode);
-            top.Controls.Add(new Label { Text = "Zelle:", AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
+            top.Controls.Add(new Label { Text = Loc.T("Zelle:"), AutoSize = true, Margin = new Padding(6, 6, 0, 0) });
             top.Controls.Add(_cellSize);
             _mode.SelectedIndexChanged += (_, _) => ApplyMode();
             _cellSize.SelectedIndexChanged += (_, _) => { _grid.Cell = int.Parse((string)_cellSize.SelectedItem!); };
@@ -493,7 +493,7 @@ public sealed class BrowserControl : UserControl
         _lv.VirtualListSize = 0;
         _lv.VirtualListSize = _view.Count;
         _grid?.SetView(_view);
-        _count.Text = $"{_view.Count} von {_p.Count} angezeigt";
+        _count.Text = Loc.F("{0} von {1} angezeigt", _view.Count, _p.Count);
         _host.Show(null);
     }
 
@@ -549,7 +549,7 @@ public sealed class BrowserControl : UserControl
         }
         catch (Exception ex)
         {
-            _host.Show(new PreviewData { Info = "Fehler bei der Vorschau: " + ex.Message });
+            _host.Show(new PreviewData { Info = Loc.T("Fehler bei der Vorschau: ") + ex.Message });
         }
     }
 
@@ -594,12 +594,12 @@ public sealed class BrowserControl : UserControl
                 return;
             }
         }
-        _count.Text = $"ID {n} in der aktuellen Auswahl nicht gefunden";
+        _count.Text = Loc.F("ID {0} in der aktuellen Auswahl nicht gefunden", n);
     }
 
     private void ExportCsv()
     {
-        using var dlg = new SaveFileDialog { Title = "Angezeigte Liste als CSV speichern", Filter = "CSV (*.csv)|*.csv", FileName = $"uotinker_{DateTime.Now:yyyyMMdd-HHmm}.csv" };
+        using var dlg = new SaveFileDialog { Title = Loc.T("Angezeigte Liste als CSV speichern"), Filter = "CSV (*.csv)|*.csv", FileName = $"uotinker_{DateTime.Now:yyyyMMdd-HHmm}.csv" };
         if (dlg.ShowDialog(FindForm()) != DialogResult.OK)
         {
             return;
@@ -614,11 +614,11 @@ public sealed class BrowserControl : UserControl
             {
                 w.WriteLine(string.Join(';', _p.Row(i).Select(Q)));
             }
-            _count.Text = $"{_view.Count} Zeilen nach {dlg.FileName} exportiert";
+            _count.Text = Loc.F("{0} Zeilen nach {1} exportiert", _view.Count, dlg.FileName);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(FindForm(), "Export fehlgeschlagen: " + ex.Message, "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            MessageBox.Show(FindForm(), Loc.T("Export fehlgeschlagen: ") + ex.Message, "UO Tinker", MessageBoxButtons.OK, MessageBoxIcon.Warning);
         }
         finally
         {
@@ -635,7 +635,7 @@ public sealed class BrowserControl : UserControl
         var filters = _p.Filters;
         for (int f = 0; f < filters.Length; f++)
         {
-            if (filters[f].Label == label && option < _combos[f].Items.Count)
+            if ((filters[f].Label == label || filters[f].Label == Loc.T(label)) && option < _combos[f].Items.Count)
             {
                 _combos[f].SelectedIndex = option;
                 return;

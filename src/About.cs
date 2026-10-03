@@ -10,9 +10,9 @@ public static class AppInfo
     public const string Repo = "uo-vasilas/uotinker";
     public const string DonateUrl = "https://ko-fi.com/uoschattenwelt";
 
-    public const string License1 = "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.";
-    public const string License2 = "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.";
-    public const string License3 = "You should have received a copy of the GNU General Public License along with this program. If not, see <https://www.gnu.org/licenses/>. Contains code from ClassicUO under the BSD 2-Clause License (see THIRD-PARTY-NOTICES.md).";
+    public static string License1 => Loc.T("Dieses Programm ist freie Software: Sie können es unter den Bedingungen der GNU General Public License, wie von der Free Software Foundation veröffentlicht, weitergeben und/oder ändern, entweder gemäß Version 3 der Lizenz oder (nach Ihrer Wahl) jeder späteren Version.");
+    public static string License2 => Loc.T("Dieses Programm wird in der Hoffnung verbreitet, dass es nützlich ist, aber OHNE JEDE GEWÄHRLEISTUNG; sogar ohne die implizite Gewährleistung der MARKTFÄHIGKEIT oder EIGNUNG FÜR EINEN BESTIMMTEN ZWECK. Details finden Sie in der GNU General Public License.");
+    public static string License3 => Loc.T("Sie sollten eine Kopie der GNU General Public License zusammen mit diesem Programm erhalten haben. Falls nicht, siehe <https://www.gnu.org/licenses/>. Enthält Code von ClassicUO unter der BSD-2-Clause-Lizenz (siehe THIRD-PARTY-NOTICES.md).");
 
     public static readonly Icon? AppIcon = LoadIcon();
 
@@ -69,7 +69,7 @@ public sealed class AboutForm : Form
 {
     public AboutForm()
     {
-        Text = "Über UOTinker";
+        Text = Loc.T("Über UOTinker");
         Width = 560;
         Height = 470;
         StartPosition = FormStartPosition.CenterParent;
@@ -89,7 +89,7 @@ public sealed class AboutForm : Form
         var info = new Label
         {
             Left = 20, Top = 52, Width = 510, Height = 84, ForeColor = Theme.Text,
-            Text = $"© {AppInfo.Years} {AppInfo.Author}\r\nErstellt am {AppInfo.BuildDate}\r\n\r\nBetrachter und Editor für die Dateien eines Ultima-Online-Clients (Tiledata, Art, Land, Gumps und mehr). Für alle Shards gedacht.",
+            Text = Loc.F("© {0} {1}\r\nErstellt am {2}\r\n\r\nBetrachter und Editor für die Dateien eines Ultima-Online-Clients (Tiledata, Art, Land, Gumps und mehr). Für alle Shards gedacht.", AppInfo.Years, AppInfo.Author, AppInfo.BuildDate),
         };
         var license = new TextBox
         {
@@ -97,7 +97,7 @@ public sealed class AboutForm : Form
             BackColor = Theme.Card, ForeColor = Theme.Muted, TabStop = false,
             Text = AppInfo.License1 + "\r\n\r\n" + AppInfo.License2 + "\r\n\r\n" + AppInfo.License3,
         };
-        var donate = Theme.FlatButton("UOTinker unterstützen (Ko-fi)");
+        var donate = Theme.FlatButton(Loc.T("UOTinker unterstützen (Ko-fi)"));
         donate.SetBounds(20, 384, 240, 34);
         donate.Click += (_, _) => AppInfo.OpenDonate();
         var ok = Theme.FlatButton("OK", true);

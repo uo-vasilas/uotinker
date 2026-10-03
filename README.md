@@ -36,6 +36,8 @@ The user interface and the built-in help (F1) are currently in German.
 - Tiledata: name, weight, height, layer, quantity, animation ID, hue, light and all flags
 - Copy values from another entry, create a new item (tiledata and art in one step, optionally saved immediately)
 - Item art, land tiles and gumps: import from PNG/BMP/GIF/JPG, export as PNG, clear a slot
+- Hues (name, 32 colors, gradient, copy), radar colors (pick, compute from the graphic, fill missing), skills and cliloc texts (uncompressed files; compressed ones stay read-only)
+- Interface and help in English and German (gear menu, applied after a restart; default follows the Windows language)
 - Nothing is written until you save. Before every write a backup is made (outside the client folder, in `%APPDATA%\UOTinker\backups`)
 - Art and gump data are appended to the end of the file and only the index is rewritten, so existing data stays untouched
 - A read-only switch in the settings menu turns writing off completely
@@ -113,6 +115,7 @@ und Content-Ersteller. Du gibst einen beliebigen Ordner mit den Client-Dateien a
 - **Ansehen:** Items, Landtiles, Gumps, Radarcolor, Hues, Animationen (Mul und UOP), Tiledata, Skills und Cliloc, jeweils als Raster oder Liste mit Suche, Filtern und CSV-Export.
 - **Lücken finden:** Die Tiledata-Seite zeigt Probleme wie Art ohne Tiledata, Tiledata ohne Art oder tragbare Items ohne AnimID, Layer oder Paperdoll. Die Prüfungen lassen sich einzeln abschalten. Auf der Übersicht zählt eine Karte die Items mit Lücken.
 - **Bearbeiten:** Tiledata-Werte und Flags, Werte kopieren, neue Items anlegen (Tiledata und Art in einem Schritt), Bilder in Item-Art, Landtiles und Gumps importieren oder als PNG exportieren. Vor jedem Schreiben wird gesichert; ein Schreibschutz-Schalter im Zahnrad-Menü verhindert jede Änderung.
+- **Weitere Dateien:** Hues, Radarcolor, Skills und Cliloc-Texte lassen sich ebenfalls bearbeiten (komprimierte Cliloc-Dateien nur lesen). Oberfläche und Hilfe gibt es auf Deutsch und Englisch (Zahnrad-Menü, gilt nach einem Neustart).
 - **Optional Sphere-Skripte:** Mit einem Skriptordner listet UOTinker alle ITEMDEFs, vergleicht sie mit der Tiledata und springt zwischen Item und Definition.
 
 ### Starten

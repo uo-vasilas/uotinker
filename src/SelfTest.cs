@@ -429,6 +429,45 @@ public static class SelfTest
         sb.AppendLine($"Monster-Tab: {mon.Summary}");
         sb.AppendLine($"Item-Anim-Tab: {itm.Summary}");
         sb.AppendLine($"Gesamtzeit {sw.ElapsedMilliseconds} ms");
+        var all = new IProvider[]
+        {
+            new ArtProvider(ctx), new LandProvider(ctx), new GumpProvider(ctx), new RadarProvider(ctx), new HuesProvider(ctx), tdp,
+            new ItemDefProvider(ctx), new SkillsProvider(ctx), new BodyAnimProvider(ctx, BodyMode.Monster), new BodyAnimProvider(ctx, BodyMode.ItemAnim),
+        };
+        foreach (var pv in all)
+        {
+            _ = pv.Columns;
+            foreach (var fl in pv.Filters)
+            {
+                _ = fl.Label;
+                _ = fl.Options;
+            }
+            _ = pv.Summary;
+            for (int k = 0; k < Math.Min(pv.Count, 40); k++)
+            {
+                _ = pv.Row(k);
+                var pr = pv.Preview(k * 7 % Math.Max(1, pv.Count));
+                pr.Editor?.Dispose();
+            }
+        }
+        string[] clAll = Directory.GetFiles(ctx.Folder, "cliloc.*").Where(x => !x.Contains(".bak")).ToArray();
+        foreach (var cf in clAll.Take(1))
+        {
+            var cp = new ClilocProvider(ctx.Cliloc(cf));
+            _ = cp.Summary;
+            _ = cp.Preview(0);
+        }
+        var helpAll = new HelpForm();
+        foreach (var topic in new[] { "welcome", "about", "bedienung", "pages", "art", "art-edit", "land", "gump", "radar", "hues", "monster", "itemanim", "raw", "itemdef", "skills", "cliloc", "tiledata", "tiledata-probleme", "tiledata-edit" })
+        {
+            helpAll.Open(topic);
+        }
+        helpAll.Dispose();
+        sb.AppendLine($"Sprache: {(Loc.English ? "EN" : "DE")}, fehlende Uebersetzungen: {Loc.Missing.Count}");
+        foreach (var miss in Loc.Missing)
+        {
+            sb.AppendLine("  FEHLT: " + miss.Replace('\n', ' '));
+        }
         return sb.ToString();
     }
 }

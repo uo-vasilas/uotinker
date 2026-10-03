@@ -98,7 +98,7 @@ public sealed class MainForm : Form
 
     public MainForm()
     {
-        Text = $"UO Tinker Version {Version} - F1 für Hilfe";
+        Text = Loc.F("UO Tinker Version {0} - F1 für Hilfe", Version);
         Width = 1560;
         Height = 920;
         MinimumSize = new Size(1100, 700);
@@ -171,16 +171,16 @@ public sealed class MainForm : Form
         };
         var icons = new (string glyph, string tip, Action act)[]
         {
-            ("⚙", "Ordner wählen", () => ShowFolderMenu()),
-            ("↻", "Neu laden", () => LoadAll()),
-            ("?", "Hilfe (F1)", () => ShowHelp()),
-            ("ⓘ", "Über UOTinker", () =>
+            ("⚙", Loc.T("Ordner wählen"), () => ShowFolderMenu()),
+            ("↻", Loc.T("Neu laden"), () => LoadAll()),
+            ("?", Loc.T("Hilfe (F1)"), () => ShowHelp()),
+            ("ⓘ", Loc.T("Über UOTinker"), () =>
             {
                 using var about = new AboutForm();
                 about.ShowDialog(this);
             }),
-            ("♥", "UOTinker unterstützen (Ko-fi)", () => AppInfo.OpenDonate()),
-            ("⏻", "Beenden", () => Close()),
+            ("♥", Loc.T("UOTinker unterstützen (Ko-fi)"), () => AppInfo.OpenDonate()),
+            ("⏻", Loc.T("Beenden"), () => Close()),
         };
         var tt = new ToolTip();
         for (int i = 0; i < icons.Length; i++)
@@ -208,27 +208,27 @@ public sealed class MainForm : Form
     private void ShowFolderMenu()
     {
         var m = new ContextMenuStrip { BackColor = Theme.Card, ForeColor = Theme.Text, ShowImageMargin = false };
-        m.Items.Add("Datenordner wählen ...", null, (_, _) => ChooseFolder(true));
-        m.Items.Add("Sphere-Skriptordner wählen (optional) ...", null, (_, _) => ChooseFolder(false));
-        m.Items.Add("Sphere-Skriptordner nicht verwenden", null, (_, _) =>
+        m.Items.Add(Loc.T("Datenordner wählen ..."), null, (_, _) => ChooseFolder(true));
+        m.Items.Add(Loc.T("Sphere-Skriptordner wählen (optional) ..."), null, (_, _) => ChooseFolder(false));
+        m.Items.Add(Loc.T("Sphere-Skriptordner nicht verwenden"), null, (_, _) =>
         {
             _settings.SphereScripts = "";
             _settings.Save();
             LoadAll();
         });
         m.Items.Add(new ToolStripSeparator());
-        var ro = new ToolStripMenuItem("Schreibschutz (nichts ändern)") { Checked = _settings.ReadOnly, CheckOnClick = true };
+        var ro = new ToolStripMenuItem(Loc.T("Schreibschutz (nichts ändern)")) { Checked = _settings.ReadOnly, CheckOnClick = true };
         ro.CheckedChanged += (_, _) =>
         {
             _settings.ReadOnly = ro.Checked;
             Settings.IsReadOnly = ro.Checked;
             _settings.Save();
-            _status.Text = ro.Checked ? "Schreibschutz aktiv: Es wird nichts geändert." : "Schreibschutz aus: Änderungen können gespeichert werden (mit Sicherung).";
+            _status.Text = ro.Checked ? Loc.T("Schreibschutz aktiv: Es wird nichts geändert.") : Loc.T("Schreibschutz aus: Änderungen können gespeichert werden (mit Sicherung).");
         };
         m.Items.Add(ro);
         m.Items.Add(new ToolStripSeparator());
-        m.Items.Add("Jetzt nach Updates suchen", null, async (_, _) => await CheckForUpdatesAsync(true));
-        var auto = new ToolStripMenuItem("Beim Start nach Updates suchen") { Checked = _settings.CheckUpdates, CheckOnClick = true };
+        m.Items.Add(Loc.T("Jetzt nach Updates suchen"), null, async (_, _) => await CheckForUpdatesAsync(true));
+        var auto = new ToolStripMenuItem(Loc.T("Beim Start nach Updates suchen")) { Checked = _settings.CheckUpdates, CheckOnClick = true };
         auto.CheckedChanged += (_, _) =>
         {
             _settings.CheckUpdates = auto.Checked;
@@ -279,7 +279,7 @@ public sealed class MainForm : Form
         {
             if (manual)
             {
-                _status.Text = "Die Update-Prüfung ist fehlgeschlagen: " + ex.Message;
+                _status.Text = Loc.F("Die Update-Prüfung ist fehlgeschlagen: {0}", ex.Message);
             }
             return;
         }
@@ -288,11 +288,11 @@ public sealed class MainForm : Form
         {
             if (manual)
             {
-                _status.Text = $"UOTinker {Updater.Current.ToString(3)} ist aktuell.";
+                _status.Text = Loc.F("UOTinker {0} ist aktuell.", Updater.Current.ToString(3));
             }
             return;
         }
-        _status.Text = $"Neue Version {info.Version.ToString(3)} verfügbar (Übersicht: Jetzt aktualisieren).";
+        _status.Text = Loc.F("Neue Version {0} verfügbar (Übersicht: Jetzt aktualisieren).", info.Version.ToString(3));
         if (_ctx != null && _current == "overview")
         {
             Navigate("overview");
@@ -306,14 +306,14 @@ public sealed class MainForm : Form
         {
             return;
         }
-        if (MessageBox.Show(this, $"UOTinker {info.Version.ToString(3)} laden und installieren?\nDas Programm wird dazu beendet.", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes || !ConfirmDiscard())
+        if (MessageBox.Show(this, Loc.F("UOTinker {0} laden und installieren?\nDas Programm wird dazu beendet.", info.Version.ToString(3)), "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes || !ConfirmDiscard())
         {
             return;
         }
         UseWaitCursor = true;
         try
         {
-            var progress = new Progress<int>(p => _status.Text = $"Update wird geladen ... {p} %");
+            var progress = new Progress<int>(p => _status.Text = Loc.F("Update wird geladen ... {0} %", p));
             string path = await Updater.DownloadAsync(info, progress);
             System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(path) { UseShellExecute = true });
             _skipConfirm = true;
@@ -322,7 +322,7 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             UseWaitCursor = false;
-            _status.Text = "Das Update ist fehlgeschlagen: " + ex.Message;
+            _status.Text = Loc.F("Das Update ist fehlgeschlagen: {0}", ex.Message);
         }
     }
 
@@ -337,7 +337,7 @@ public sealed class MainForm : Form
         {
             return true;
         }
-        return MessageBox.Show(this, $"{n} ungespeicherte Änderung(en) gehen verloren. Trotzdem fortfahren?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+        return MessageBox.Show(this, Loc.F("{0} ungespeicherte Änderung(en) gehen verloren. Trotzdem fortfahren?", n), "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
     }
 
     private void ChooseFolder(bool data)
@@ -366,17 +366,17 @@ public sealed class MainForm : Form
         }
         if (!Directory.Exists(_settings.DataFolder))
         {
-            using var dlg = new FolderBrowserDialog { Description = "Ordner mit den Ultima-Online-Dateien wählen (art.mul, tiledata.mul, hues.mul ...)", UseDescriptionForTitle = true };
+            using var dlg = new FolderBrowserDialog { Description = Loc.T("Ordner mit den Ultima-Online-Dateien wählen (art.mul, tiledata.mul, hues.mul ...)"), UseDescriptionForTitle = true };
             if (dlg.ShowDialog(this) != DialogResult.OK)
             {
-                _status.Text = "Kein Datenordner gewählt. Zahnrad unten links: Datenordner wählen.";
+                _status.Text = Loc.T("Kein Datenordner gewählt. Zahnrad unten links: Datenordner wählen.");
                 return;
             }
             _settings.DataFolder = dlg.SelectedPath;
             _settings.Save();
         }
         _body.Visible = false;
-        _status.Text = $"Lade {_settings.DataFolder} ...";
+        _status.Text = Loc.F("Lade {0} ...", _settings.DataFolder);
         UseWaitCursor = true;
         foreach (var c in _pageControls.Values)
         {
@@ -403,7 +403,7 @@ public sealed class MainForm : Form
         catch (Exception ex)
         {
             UseWaitCursor = false;
-            _status.Text = "Fehler beim Laden: " + ex.Message;
+            _status.Text = Loc.F("Fehler beim Laden: {0}", ex.Message);
             return;
         }
         _ctx = ctx;
@@ -412,7 +412,8 @@ public sealed class MainForm : Form
         AppNav.Request = (page, key) => BeginInvoke(() => Navigate(page, b => b.JumpTo(key)));
         BuildNav();
         _body.Visible = true;
-        _status.Text = $"Datenordner: {_settings.DataFolder}{(ctx.Catalog.FileCount > 0 ? $"   |   Sphere-Skripte: {ctx.Catalog.FileCount} Dateien" : "")}   |   Tiledata: {(ctx.Tile.Loaded ? "ok" : "NICHT geladen")}   |   UOP-Einträge: {ctx.Anim.Uop.Entries.Count}";
+        string sphereInfo = ctx.Catalog.FileCount > 0 ? Loc.F("   |   Sphere-Skripte: {0} Dateien", ctx.Catalog.FileCount) : "";
+        _status.Text = Loc.F("Datenordner: {0}{1}   |   Tiledata: {2}   |   UOP-Einträge: {3}", _settings.DataFolder, sphereInfo, ctx.Tile.Loaded ? Loc.T("ok") : Loc.T("NICHT geladen"), ctx.Anim.Uop.Entries.Count);
         Navigate(StartPage);
         StartPage = "overview";
     }
@@ -425,15 +426,15 @@ public sealed class MainForm : Form
         void Add(string key, string group, string title, string glyph, string sub, Func<Control> factory) =>
             _pages.Add(new PageDef { Key = key, Group = group, Title = title, Glyph = glyph, Subtitle = sub, Factory = factory });
 
-        Add("overview", "ÜBERSICHT", "Übersicht", "▦", "", () => BuildOverview(ctx));
-        Add("art", "GRAFIK", "Items (Art)", "◈", "Alle Item-Grafiken aus art.mul bis zur höchsten ID, auch freie Slots.", () => Browser("art", new ArtProvider(ctx)));
-        Add("land", "GRAFIK", "Landtiles", "◢", "Bodenkacheln (Index 0 bis 0x3FFF in art.mul).", () => Browser("land", new LandProvider(ctx)));
-        Add("gump", "GRAFIK", "Gumps", "▣", "Alle Gumps aus gumpart.mul bis zur höchsten ID, auch freie Slots.", () => Browser("gump", new GumpProvider(ctx)));
-        Add("radar", "GRAFIK", "Radarcolor", "◉", "Radarfarben je Land- und Item-Grafik (radarcol.mul).", () => Browser("radar", new RadarProvider(ctx)));
-        Add("hues", "GRAFIK", "Hues", "◐", "Alle Farben aus hues.mul mit je 32 Farbwerten.", () => Browser("hues", new HuesProvider(ctx)));
-        Add("monster", "ANIMATIONEN", "Bodies / Monster", "☠", "Alle Bodies mit Quellen aus anim.mul bis anim6.mul, bodyconv.def, body.def und UOP.", () => Browser("monster", _monster!));
-        Add("itemanim", "ANIMATIONEN", "Item-AnimIDs", "⚔", "Animations-IDs, die Items in der Tiledata benutzen, mit Paperdoll-Gumps.", () => Browser("itemanim", _itemAnim!));
-        Add("raw", "ANIMATIONEN", "Rohdateien", "☰", "Jede Animationsdatei einzeln, ohne body.def und bodyconv.def.", () =>
+        Add("overview", Loc.T("ÜBERSICHT"), Loc.T("Übersicht"), "▦", "", () => BuildOverview(ctx));
+        Add("art", Loc.T("GRAFIK"), Loc.T("Items (Art)"), "◈", Loc.T("Alle Item-Grafiken aus art.mul bis zur höchsten ID, auch freie Slots."), () => Browser("art", new ArtProvider(ctx)));
+        Add("land", Loc.T("GRAFIK"), Loc.T("Landtiles"), "◢", Loc.T("Bodenkacheln (Index 0 bis 0x3FFF in art.mul)."), () => Browser("land", new LandProvider(ctx)));
+        Add("gump", Loc.T("GRAFIK"), "Gumps", "▣", Loc.T("Alle Gumps aus gumpart.mul bis zur höchsten ID, auch freie Slots."), () => Browser("gump", new GumpProvider(ctx)));
+        Add("radar", Loc.T("GRAFIK"), "Radarcolor", "◉", Loc.T("Radarfarben je Land- und Item-Grafik (radarcol.mul)."), () => Browser("radar", new RadarProvider(ctx)));
+        Add("hues", Loc.T("GRAFIK"), "Hues", "◐", Loc.T("Alle Farben aus hues.mul mit je 32 Farbwerten."), () => Browser("hues", new HuesProvider(ctx)));
+        Add("monster", Loc.T("ANIMATIONEN"), "Bodies / Monster", "☠", Loc.T("Alle Bodies mit Quellen aus anim.mul bis anim6.mul, bodyconv.def, body.def und UOP."), () => Browser("monster", _monster!));
+        Add("itemanim", Loc.T("ANIMATIONEN"), Loc.T("Item-AnimIDs"), "⚔", Loc.T("Animations-IDs, die Items in der Tiledata benutzen, mit Paperdoll-Gumps."), () => Browser("itemanim", _itemAnim!));
+        Add("raw", Loc.T("ANIMATIONEN"), Loc.T("Rohdateien"), "☰", Loc.T("Jede Animationsdatei einzeln, ohne body.def und bodyconv.def."), () =>
         {
             var h = new SubTabHost();
             for (int f = 0; f < 6; f++)
@@ -451,10 +452,10 @@ public sealed class MainForm : Form
             h.Select(0);
             return h;
         });
-        Add("tiledata", "DATEN", "Tiledata", "▤", "Name, Flags und Eigenschaften aller Land- und Item-Kacheln.", () => Browser("tiledata", _tiledata!));
-        Add("itemdef", "DATEN", "Sphere-ITEMDEF", "≣", "Alle ITEMDEFs der Sphere-Skripte mit Item-ID, Tiledata-Name und Problemen.", () => Browser("itemdef", new ItemDefProvider(ctx)));
-        Add("skills", "DATEN", "Skills", "✦", "Skill-Tabelle (skills.idx/skills.mul).", () => Browser("skills", new SkillsProvider(ctx)));
-        Add("cliloc", "DATEN", "Cliloc", "✎", "Clientsprache: Textnummern und Texte je Sprache.", () =>
+        Add("tiledata", Loc.T("DATEN"), "Tiledata", "▤", Loc.T("Name, Flags und Eigenschaften aller Land- und Item-Kacheln."), () => Browser("tiledata", _tiledata!));
+        Add("itemdef", Loc.T("DATEN"), "Sphere-ITEMDEF", "≣", Loc.T("Alle ITEMDEFs der Sphere-Skripte mit Item-ID, Tiledata-Name und Problemen."), () => Browser("itemdef", new ItemDefProvider(ctx)));
+        Add("skills", Loc.T("DATEN"), "Skills", "✦", Loc.T("Skill-Tabelle (skills.idx/skills.mul)."), () => Browser("skills", new SkillsProvider(ctx)));
+        Add("cliloc", Loc.T("DATEN"), "Cliloc", "✎", Loc.T("Clientsprache: Textnummern und Texte je Sprache."), () =>
         {
             var h = new SubTabHost();
             foreach (var f in Directory.GetFiles(ctx.Folder, "cliloc.*").Where(x => !x.Contains(".bak", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x))
@@ -546,7 +547,7 @@ public sealed class MainForm : Form
             }
             catch (Exception ex)
             {
-                ctl = new TextBox { Multiline = true, ReadOnly = true, Text = "Fehler: " + ex };
+                ctl = new TextBox { Multiline = true, ReadOnly = true, Text = Loc.F("Fehler: {0}", ex) };
             }
             finally
             {
@@ -581,11 +582,11 @@ public sealed class MainForm : Form
         if (key == "overview")
         {
             _title.Text = Greeting();
-            _subtitle.Text = "UO Tinker - Betrachter und Editor für die Dateien deines Ultima-Online-Clients";
-            var reload = Theme.FlatButton("Neu laden", true);
+            _subtitle.Text = Loc.T("UO Tinker - Betrachter und Editor für die Dateien deines Ultima-Online-Clients");
+            var reload = Theme.FlatButton(Loc.T("Neu laden"), true);
             reload.Width = 190;
             reload.Click += (_, _) => LoadAll();
-            var choose = Theme.FlatButton("Datenordner wählen");
+            var choose = Theme.FlatButton(Loc.T("Datenordner wählen"));
             choose.Width = 190;
             choose.Click += (_, _) => ChooseFolder(true);
             var pill = new Label
@@ -637,7 +638,7 @@ public sealed class MainForm : Form
     private static string Greeting()
     {
         int h = DateTime.Now.Hour;
-        return h >= 5 && h < 11 ? "Guten Morgen" : h >= 11 && h < 17 ? "Guten Tag" : "Guten Abend";
+        return h >= 5 && h < 11 ? Loc.T("Guten Morgen") : h >= 11 && h < 17 ? Loc.T("Guten Tag") : Loc.T("Guten Abend");
     }
 
     private Control BuildOverview(Context ctx)
@@ -655,33 +656,33 @@ public sealed class MainForm : Form
         {
             cards.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f / 6));
         }
-        cards.Controls.Add(StatCard("ITEM-ART", artUsed.ToString("N0"), $"belegt von {ctx.Art.StaticCount:N0} Slots, {ctx.Art.StaticCount - artUsed:N0} frei", Theme.Gold), 0, 0);
-        cards.Controls.Add(StatCard("GUMPS", gumpUsed.ToString("N0"), $"belegt von {ctx.Art.GumpIdx.Count:N0} Slots, {ctx.Art.GumpIdx.Count - gumpUsed:N0} frei", Theme.Gold), 1, 0);
-        cards.Controls.Add(StatCard("ANIMATIONEN", mon.UsedCount.ToString("N0"), $"Bodies mit Animation, davon {mon.UopOnlyCount:N0} nur in UOP", Theme.Gold), 2, 0);
-        cards.Controls.Add(StatCard("OHNE ANIMATION", mon.MissingCount.ToString("N0"), "Chardefs ohne Animationsdaten", mon.MissingCount > 0 ? Theme.Red : Theme.Green), 3, 0);
-        cards.Controls.Add(StatCard("ITEMS MIT LÜCKEN", gaps.ToString("N0"), $"{gapCounts[0]:N0} ohne Tiledata, {gapCounts[1]:N0} ohne Art, {gapCounts[2] + gapCounts[3] + gapCounts[4]:N0} Anim (Klick)", gaps > 0 ? Theme.Red : Theme.Green,
-            () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter("Typ", 2); b.SetFilter("Problem", 1); })), 4, 0);
-        cards.Controls.Add(StatCard("SPHERE-KATALOG", ctx.Catalog.Chars.Count.ToString("N0"), $"Body-Nummern mit CHARDEF, {ctx.Catalog.Items.Count:N0} mit ITEMDEF", Theme.Gold), 5, 0);
+        cards.Controls.Add(StatCard(Loc.T("ITEM-ART"), artUsed.ToString("N0"), Loc.F("belegt von {0:N0} Slots, {1:N0} frei", ctx.Art.StaticCount, ctx.Art.StaticCount - artUsed), Theme.Gold), 0, 0);
+        cards.Controls.Add(StatCard("GUMPS", gumpUsed.ToString("N0"), Loc.F("belegt von {0:N0} Slots, {1:N0} frei", ctx.Art.GumpIdx.Count, ctx.Art.GumpIdx.Count - gumpUsed), Theme.Gold), 1, 0);
+        cards.Controls.Add(StatCard(Loc.T("ANIMATIONEN"), mon.UsedCount.ToString("N0"), Loc.F("Bodies mit Animation, davon {0:N0} nur in UOP", mon.UopOnlyCount), Theme.Gold), 2, 0);
+        cards.Controls.Add(StatCard(Loc.T("OHNE ANIMATION"), mon.MissingCount.ToString("N0"), Loc.T("Chardefs ohne Animationsdaten"), mon.MissingCount > 0 ? Theme.Red : Theme.Green), 3, 0);
+        cards.Controls.Add(StatCard(Loc.T("ITEMS MIT LÜCKEN"), gaps.ToString("N0"), Loc.F("{0:N0} ohne Tiledata, {1:N0} ohne Art, {2:N0} Anim (Klick)", gapCounts[0], gapCounts[1], gapCounts[2] + gapCounts[3] + gapCounts[4]), gaps > 0 ? Theme.Red : Theme.Green,
+            () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter(Loc.T("Typ"), 2); b.SetFilter(Loc.T("Problem"), 1); })), 4, 0);
+        cards.Controls.Add(StatCard(Loc.T("SPHERE-KATALOG"), ctx.Catalog.Chars.Count.ToString("N0"), Loc.F("Body-Nummern mit CHARDEF, {0:N0} mit ITEMDEF", ctx.Catalog.Items.Count), Theme.Gold), 5, 0);
 
         var lower = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3, RowCount = 1, BackColor = Theme.Bg, Padding = new Padding(0, 16, 0, 0) };
         lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 42));
         lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 30));
         lower.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 28));
 
-        var files = SimpleList(new[] { "Datei", "Größe", "Inhalt" }, new[] { 150, 80, 200 });
+        var files = SimpleList(new[] { Loc.T("Datei"), Loc.T("Größe"), Loc.T("Inhalt") }, new[] { 150, 80, 200 });
         foreach (var (name, info) in FileInfos(ctx))
         {
             string path = Path.Combine(ctx.Folder, name);
-            string size = File.Exists(path) ? FormatSize(new FileInfo(path).Length) : "fehlt";
+            string size = File.Exists(path) ? FormatSize(new FileInfo(path).Length) : Loc.T("fehlt");
             files.Items.Add(new ListViewItem(new[] { name, size, info }));
         }
-        lower.Controls.Add(Panel_("Dateien im Datenordner", files), 0, 0);
+        lower.Controls.Add(Panel_(Loc.T("Dateien im Datenordner"), files), 0, 0);
 
-        var hist = SimpleList(new[] { "Zuletzt angesehen" }, new[] { 380 });
+        var hist = SimpleList(new[] { Loc.T("Zuletzt angesehen") }, new[] { 380 });
         foreach (var h in _history)
         {
             var pg = _pages.First(p => p.Key == h.page);
-            hist.Items.Add(new ListViewItem($"{h.text}   ·   {pg.Title}") { Tag = h });
+            hist.Items.Add(new ListViewItem(Loc.F("{0}   ·   {1}", h.text, pg.Title)) { Tag = h });
         }
         hist.DoubleClick += (_, _) =>
         {
@@ -690,9 +691,9 @@ public sealed class MainForm : Form
                 Navigate(h.Item1, b => b.GoToKey(h.Item3));
             }
         };
-        lower.Controls.Add(Panel_("Zuletzt angesehen", hist, "Doppelklick öffnet den Eintrag erneut."), 1, 0);
+        lower.Controls.Add(Panel_(Loc.T("Zuletzt angesehen"), hist, Loc.T("Doppelklick öffnet den Eintrag erneut.")), 1, 0);
 
-        var quick = SimpleList(new[] { "Schnellaktionen" }, new[] { 380 });
+        var quick = SimpleList(new[] { Loc.T("Schnellaktionen") }, new[] { 380 });
         var gapActions = new List<(string text, Action act)>();
         var gapLabels = TiledataProvider.ProblemLabels;
         for (int k = 0; k < gapLabels.Count; k++)
@@ -700,18 +701,18 @@ public sealed class MainForm : Form
             int opt = 3 + k;
             if (gapCounts[k] > 0)
             {
-                gapActions.Add(($"Tiledata: {gapLabels[k]} ({gapCounts[k]:N0})", () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter("Typ", 2); b.SetFilter("Problem", opt); })));
+                gapActions.Add((Loc.F("Tiledata: {0} ({1:N0})", gapLabels[k], gapCounts[k]), () => Navigate("tiledata", b => { b.ResetFilters(); b.SetFilter(Loc.T("Typ"), 2); b.SetFilter(Loc.T("Problem"), opt); })));
             }
         }
         var actions = gapActions.Concat(new (string text, Action act)[]
         {
-            ("Chardefs ohne Animation anzeigen (Bodies)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Status", 3); })),
-            ("Nur UOP-Animationen anzeigen (Bodies)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Quelle", 2); })),
-            ("Bodies ohne Chardef anzeigen (Animation vorhanden)", () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter("Chardef", 2); b.SetFilter("Status", 1); })),
-            ("Item-AnimIDs ohne Animation", () => Navigate("itemanim", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
-            ("Freie Item-Art-Slots", () => Navigate("art", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
-            ("Freie Gump-Slots", () => Navigate("gump", b => { b.ResetFilters(); b.SetFilter("Status", 2); })),
-            ("Leere Hues", () => Navigate("hues", b => { b.ResetFilters(); b.SetFilter("Eintrag", 1); })),
+            (Loc.T("Chardefs ohne Animation anzeigen (Bodies)"), () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter(Loc.T("Status"), 3); })),
+            (Loc.T("Nur UOP-Animationen anzeigen (Bodies)"), () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter(Loc.T("Quelle"), 2); })),
+            (Loc.T("Bodies ohne Chardef anzeigen (Animation vorhanden)"), () => Navigate("monster", b => { b.ResetFilters(); b.SetFilter(Loc.T("Chardef"), 2); b.SetFilter(Loc.T("Status"), 1); })),
+            (Loc.T("Item-AnimIDs ohne Animation"), () => Navigate("itemanim", b => { b.ResetFilters(); b.SetFilter(Loc.T("Status"), 2); })),
+            (Loc.T("Freie Item-Art-Slots"), () => Navigate("art", b => { b.ResetFilters(); b.SetFilter(Loc.T("Status"), 2); })),
+            (Loc.T("Freie Gump-Slots"), () => Navigate("gump", b => { b.ResetFilters(); b.SetFilter(Loc.T("Status"), 2); })),
+            (Loc.T("Leere Hues"), () => Navigate("hues", b => { b.ResetFilters(); b.SetFilter(Loc.T("Eintrag"), 1); })),
         }).ToArray();
         foreach (var a in actions)
         {
@@ -724,7 +725,7 @@ public sealed class MainForm : Form
                 act();
             }
         };
-        lower.Controls.Add(Panel_("Schnellaktionen", quick, "Doppelklick führt aus."), 2, 0);
+        lower.Controls.Add(Panel_(Loc.T("Schnellaktionen"), quick, Loc.T("Doppelklick führt aus.")), 2, 0);
 
         root.Controls.Add(lower);
         root.Controls.Add(cards);
@@ -732,14 +733,14 @@ public sealed class MainForm : Form
         {
             var banner = new Panel { Dock = DockStyle.Top, Height = 62, Padding = new Padding(0, 0, 0, 12), BackColor = Theme.Bg };
             var inner = new Panel { Dock = DockStyle.Fill, BackColor = Theme.Active, Padding = new Padding(16, 0, 8, 0) };
-            var go = Theme.FlatButton("Jetzt aktualisieren", true);
+            var go = Theme.FlatButton(Loc.T("Jetzt aktualisieren"), true);
             go.Dock = DockStyle.Right;
             go.Width = 220;
             go.Click += (_, _) => StartUpdate();
             var text = new Label
             {
                 Dock = DockStyle.Fill, TextAlign = ContentAlignment.MiddleLeft, ForeColor = Theme.Gold, Font = Theme.UiBold,
-                Text = $"Neue Version {_update.Version.ToString(3)} verfügbar (installiert: {Updater.Current.ToString(3)})",
+                Text = Loc.F("Neue Version {0} verfügbar (installiert: {1})", _update.Version.ToString(3), Updater.Current.ToString(3)),
             };
             inner.Controls.Add(text);
             inner.Controls.Add(go);
@@ -752,26 +753,26 @@ public sealed class MainForm : Form
 
     private static IEnumerable<(string, string)> FileInfos(Context c)
     {
-        yield return ("art.mul", $"{c.Art.ArtIdx.Count:N0} Index-Einträge (Land + Items)");
-        yield return ("gumpart.mul", $"{c.Art.GumpIdx.Count:N0} Gump-Slots");
-        yield return ("tiledata.mul", $"{c.Tile.LandCount:N0} Land + {c.Tile.ItemCount:N0} Items");
-        yield return ("hues.mul", $"{c.Hues.Count:N0} Hues");
-        yield return ("radarcol.mul", "Radarfarben");
-        yield return ("skills.mul", $"{c.Skills.Count} Skills");
+        yield return ("art.mul", Loc.F("{0:N0} Index-Einträge (Land + Items)", c.Art.ArtIdx.Count));
+        yield return ("gumpart.mul", Loc.F("{0:N0} Gump-Slots", c.Art.GumpIdx.Count));
+        yield return ("tiledata.mul", Loc.F("{0:N0} Land + {1:N0} Items", c.Tile.LandCount, c.Tile.ItemCount));
+        yield return ("hues.mul", Loc.F("{0:N0} Hues", c.Hues.Count));
+        yield return ("radarcol.mul", Loc.T("Radarfarben"));
+        yield return ("skills.mul", Loc.F("{0} Skills", c.Skills.Count));
         for (int f = 0; f < 6; f++)
         {
             if (c.Anim.Pos[f] != null)
             {
-                yield return (AnimStore.FileNames[f] + ".mul", $"bis Body/Index {c.Anim.MaxId(f)}");
+                yield return (AnimStore.FileNames[f] + ".mul", Loc.F("bis Body/Index {0}", c.Anim.MaxId(f)));
             }
         }
         foreach (var u in c.Anim.Uop.Files)
         {
-            yield return (u, "UOP-Animation");
+            yield return (u, Loc.T("UOP-Animation"));
         }
-        yield return ("bodyconv.def", $"{c.Anim.BodyConv.Count} Einträge");
-        yield return ("body.def", $"{c.Anim.BodyDef.Count} Einträge");
-        yield return ("mobtypes.txt", $"{c.Anim.MobTypes.Count} Einträge");
+        yield return ("bodyconv.def", Loc.F("{0} Einträge", c.Anim.BodyConv.Count));
+        yield return ("body.def", Loc.F("{0} Einträge", c.Anim.BodyDef.Count));
+        yield return ("mobtypes.txt", Loc.F("{0} Einträge", c.Anim.MobTypes.Count));
     }
 
     private static string FormatSize(long b) => b >= 1 << 30 ? $"{b / (double)(1 << 30):F1} GB" : b >= 1 << 20 ? $"{b / (double)(1 << 20):F1} MB" : $"{b / 1024.0:F0} KB";
