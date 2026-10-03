@@ -11,7 +11,7 @@ and browse everything in one place, including empty slots up to the highest ID, 
 If UOTinker is useful to you, you can support its development on
 [Ko-fi](https://ko-fi.com/uoschattenwelt). This is voluntary; the tool stays free and GPL.
 
-The user interface and the built-in help (F1) are currently in German.
+The user interface and the built-in help (F1) are available in English and German.
 
 ---
 
