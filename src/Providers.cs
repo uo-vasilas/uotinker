@@ -50,6 +50,8 @@ public sealed class Context
     public AnimStore Anim = null!;
     public HueData Hues = null!;
     public SkillData Skills = null!;
+    public RadarData Radar = null!;
+    private readonly Dictionary<string, ClilocData> _clilocs = new(StringComparer.OrdinalIgnoreCase);
     public SphereCatalog Catalog = null!;
     public string Folder = "";
 
@@ -61,8 +63,32 @@ public sealed class Context
         c.Anim = new AnimStore(s.DataFolder);
         c.Hues = new HueData(s.DataFolder);
         c.Skills = new SkillData(s.DataFolder);
+        c.Radar = new RadarData(s.DataFolder);
         c.Catalog = new SphereCatalog(s.SphereScripts);
         return c;
+    }
+
+    public ClilocData Cliloc(string path)
+    {
+        lock (_clilocs)
+        {
+            if (!_clilocs.TryGetValue(path, out var d))
+            {
+                _clilocs[path] = d = new ClilocData(path);
+            }
+            return d;
+        }
+    }
+
+    public int PendingOther
+    {
+        get
+        {
+            lock (_clilocs)
+            {
+                return Radar.Dirty.Count + Hues.Dirty.Count + Skills.Dirty.Count + _clilocs.Values.Sum(x => x.Dirty.Count);
+            }
+        }
     }
 }
 
@@ -624,29 +650,12 @@ public sealed class TiledataProvider : ProviderBase, IThumbProvider
 public sealed class RadarProvider : ProviderBase, IThumbProvider
 {
     private readonly Context _c;
-    private readonly ushort[] _col;
+    private ushort[] _col => _c.Radar.Col;
 
     public Bitmap? Thumb(int i) => Gfx.Solid(Gfx.C16Color(_col[i]), 16, 16);
     public string ThumbLabel(int i) => i < ArtStore.LandCount ? "L" + Gfx.Hex(i) : Gfx.Hex(i - ArtStore.LandCount);
 
-    public RadarProvider(Context c)
-    {
-        _c = c;
-        string path = Path.Combine(c.Folder, "radarcol.mul");
-        if (File.Exists(path))
-        {
-            var b = File.ReadAllBytes(path);
-            _col = new ushort[b.Length / 2];
-            for (int i = 0; i < _col.Length; i++)
-            {
-                _col[i] = BitConverter.ToUInt16(b, i * 2);
-            }
-        }
-        else
-        {
-            _col = Array.Empty<ushort>();
-        }
-    }
+    public RadarProvider(Context c) => _c = c;
 
     public override string[] Columns => new[] { "Index", "Typ", "ID", "Hex", "Farbe (16 Bit)", "RGB", "Status" };
     public override int[] Widths => new[] { 65, 45, 60, 70, 90, 80, 90 };
@@ -678,6 +687,7 @@ public sealed class RadarProvider : ProviderBase, IThumbProvider
             Swatch = Gfx.C16Color(_col[i]),
             Image = land ? _c.Art.GetLand(id, out _) : _c.Art.GetStatic(id, out _),
         };
+        p.Editor = new RadarEditor(_c, i);
         p.Info = $"Radarfarbe {(land ? "Land" : "Item")} {id} ({Gfx.Hex(id)}): 0x{_col[i]:X4}";
         return p;
     }
@@ -707,7 +717,7 @@ public sealed class HuesProvider : ProviderBase, IThumbProvider
     public override string[] Columns => new[] { "Hue", "Hex", "Name", "TabelleStart", "TabelleEnde", "Farbe 1", "Farbe 32" };
     public override int[] Widths => new[] { 55, 65, 200, 85, 85, 70, 70 };
     public override int Count => _c.Hues.Count;
-    public override bool IsFree(int i) => _c.Hues.Names[i].Length == 0 && _c.Hues.Colors[i].All(x => x == 0);
+    public override bool IsFree(int i) => _c.Hues.IsFree(i);
 
     public override string[] Row(int i) => new[]
     {
@@ -724,6 +734,7 @@ public sealed class HuesProvider : ProviderBase, IThumbProvider
 
     public override PreviewData Preview(int i) => new()
     {
+        Editor = new HueEditor(_c, i),
         Palette = _c.Hues.Colors[i].Select(Gfx.C16Color).ToArray(),
         Info = $"Hue {i} ({Gfx.Hex(i)}): \"{_c.Hues.Names[i]}\"\nTabelle {_c.Hues.TableStart[i]} - {_c.Hues.TableEnd[i]}\n" +
                string.Join(' ', _c.Hues.Colors[i].Select(x => x.ToString("X4"))),
@@ -752,6 +763,7 @@ public sealed class SkillsProvider : ProviderBase
 
     public override PreviewData Preview(int i) => new()
     {
+        Editor = new SkillEditor(_c, i),
         Info = $"Skill {i} ({Gfx.Hex(i)}): {_c.Skills.Names[i]}\nSkill-Button: {(_c.Skills.Button[i] ? "ja" : "nein")}",
     };
 }
@@ -760,7 +772,7 @@ public sealed class ClilocProvider : ProviderBase
 {
     private readonly ClilocData _d;
 
-    public ClilocProvider(string path) => _d = new ClilocData(path);
+    public ClilocProvider(ClilocData d) => _d = d;
 
     public override string[] Columns => new[] { "Nummer", "Hex", "Text" };
     public override int[] Widths => new[] { 80, 80, 700 };
@@ -773,6 +785,7 @@ public sealed class ClilocProvider : ProviderBase
 
     public override PreviewData Preview(int i) => new()
     {
+        Editor = new ClilocEditor(_d, _d.Numbers[i]),
         Info = $"Cliloc {_d.Numbers[i]} ({Gfx.Hex(_d.Numbers[i])})\n\n{_d.Texts[i]}",
     };
 }

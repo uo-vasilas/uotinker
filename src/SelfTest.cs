@@ -247,6 +247,115 @@ public static class SelfTest
         td.CopyParts(td.LandCount + srcId, td.LandCount + 0x0F44, TileParts.AllItem & ~TileParts.Name);
         sb.AppendLine($"Kopiertest: Ziel Gewicht={td.Weight[0x0F44]} (Quelle {td.Weight[srcId]}), Flags gleich={td.ItemFlags[0x0F44] == td.ItemFlags[srcId]}, Name unveraendert='{td.ItemName[0x0F44]}', Dirty={td.Dirty.Contains(td.LandCount + 0x0F44)}, naechster freier mit Art ab 0x0F40: 0x{tdp.NextFreeItem(0x0F40, true):X}, ganz freier: 0x{tdp.NextFreeItem(0x0F40, false):X}");
 
+        string ttmp = Path.Combine(Path.GetTempPath(), "uotinker_tabletest");
+        if (Directory.Exists(ttmp))
+        {
+            Directory.Delete(ttmp, true);
+        }
+        Directory.CreateDirectory(ttmp);
+        foreach (var fn in new[] { "hues.mul", "radarcol.mul", "skills.idx", "skills.mul" })
+        {
+            if (File.Exists(Path.Combine(ctx.Folder, fn)))
+            {
+                File.Copy(Path.Combine(ctx.Folder, fn), Path.Combine(ttmp, fn));
+            }
+        }
+        string? clSrc = Directory.GetFiles(ctx.Folder, "cliloc.*").Where(x => !x.Contains(".bak")).OrderBy(x => x).FirstOrDefault();
+        if (clSrc != null)
+        {
+            File.Copy(clSrc, Path.Combine(ttmp, Path.GetFileName(clSrc)));
+        }
+        var oHue = File.ReadAllBytes(Path.Combine(ttmp, "hues.mul"));
+        var oRad = File.ReadAllBytes(Path.Combine(ttmp, "radarcol.mul"));
+        var hd = new HueData(ttmp);
+        hd.Touch(5);
+        hd.Names[5] = "Testhue";
+        hd.Colors[5][3] = 0x1234;
+        hd.TableStart[5] = 11;
+        hd.Touch(1000);
+        hd.Colors[1000][31] = 0x7FFF;
+        string? he = hd.Save(out string hbk);
+        var hd2 = new HueData(ttmp);
+        var aHue = File.ReadAllBytes(Path.Combine(ttmp, "hues.mul"));
+        int hdiff = Enumerable.Range(0, oHue.Length).Count(k => oHue[k] != aHue[k]);
+        sb.AppendLine($"Huetest: Fehler={he ?? "keiner"}, Groesse gleich={oHue.Length == aHue.Length}, geaenderte Bytes={hdiff}, Name='{hd2.Names[5]}', Farbe3=0x{hd2.Colors[5][3]:X4}, Start={hd2.TableStart[5]}, Hue1000/31=0x{hd2.Colors[1000][31]:X4}, Nachbar unberuehrt={hd2.Names[6] == ctx.Hues.Names[6] && hd2.Names[4] == ctx.Hues.Names[4]}, Backup gleich={File.ReadAllBytes(hbk).SequenceEqual(oHue)}");
+        hd.Touch(7);
+        hd.Names[7] = "weg";
+        hd.Revert(7);
+        sb.AppendLine($"Hue-Revert: Name='{hd.Names[7]}' Dirty={hd.Dirty.Count}");
+        var rd = new RadarData(ttmp);
+        rd.Set(0x4000 + 0x0F43, 0x1111);
+        rd.Set(7, 0x2222);
+        string? re = rd.Save(out string rbk);
+        var rd2 = new RadarData(ttmp);
+        var aRad = File.ReadAllBytes(Path.Combine(ttmp, "radarcol.mul"));
+        sb.AppendLine($"Radartest: Fehler={re ?? "keiner"}, Groesse gleich={oRad.Length == aRad.Length}, geaenderte Bytes={Enumerable.Range(0, oRad.Length).Count(k => oRad[k] != aRad[k])} (max 4), Item=0x{rd2.Col[0x4000 + 0x0F43]:X4}, Land7=0x{rd2.Col[7]:X4}, Backup gleich={File.ReadAllBytes(rbk).SequenceEqual(oRad)}");
+        var sd = new SkillData(ttmp);
+        string firstName = sd.Names[0];
+        int freeSkill = Enumerable.Range(0, sd.Count).FirstOrDefault(k => !sd.Valid[k], -1);
+        sd.Touch(0);
+        sd.Names[0] = firstName + "X";
+        sd.Button[0] = !sd.Button[0];
+        if (freeSkill >= 0)
+        {
+            sd.Touch(freeSkill);
+            sd.Valid[freeSkill] = true;
+            sd.Names[freeSkill] = "Testskill";
+        }
+        string? se2 = sd.Save(out _);
+        var sd2 = new SkillData(ttmp);
+        int namesSame = Enumerable.Range(1, sd.Count - 1).Count(k => k != freeSkill && sd2.Names[k] == ctx.Skills.Names[k] && sd2.Valid[k] == ctx.Skills.Valid[k] && sd2.Button[k] == ctx.Skills.Button[k]);
+        sb.AppendLine($"Skilltest: Fehler={se2 ?? "keiner"}, Skill0='{sd2.Names[0]}' (vorher '{firstName}'), Button gedreht={sd2.Button[0] != ctx.Skills.Button[0]}, freier Slot {freeSkill}='{(freeSkill >= 0 ? sd2.Names[freeSkill] : "")}', unveraenderte Skills={namesSame}/{sd.Count - 1 - (freeSkill >= 0 ? 1 : 0)}");
+        if (clSrc != null)
+        {
+            string clTmp = Path.Combine(ttmp, Path.GetFileName(clSrc));
+            var oCl = File.ReadAllBytes(clTmp);
+            var cd = new ClilocData(clTmp);
+            if (cd.Numbers.Length > 0)
+            {
+                int n0 = cd.Numbers[0];
+                string t0 = cd.Texts[0];
+                cd.SetText(n0, t0 + "!");
+                cd.SetText(999999999, "Neuer Eintrag");
+                string? ce = cd.Save(out string cbk);
+                var cd2 = new ClilocData(clTmp);
+                int mism = 0;
+                for (int k = 1; k < cd.Numbers.Length - 1; k++)
+                {
+                    if (cd2.Numbers[k] != cd.Numbers[k] || cd2.Texts[k] != cd.Texts[k])
+                    {
+                        mism++;
+                    }
+                }
+                sb.AppendLine($"Cliloctest: Fehler={ce ?? (cd.CanWrite ? "keiner" : cd.WriteBlocker)}, komprimiert={cd.Compressed}, Eintraege {cd.Numbers.Length - 1}->{cd2.Numbers.Length}, Text0 geaendert={cd2.Texts[0] == t0 + "!"}, neuer Eintrag='{(cd2.IndexOf(999999999) >= 0 ? cd2.Texts[cd2.IndexOf(999999999)] : "fehlt")}', Abweichungen={mism}, Backup gleich={(ce == null && File.ReadAllBytes(cbk).SequenceEqual(oCl))}");
+                cd.Revert(999999999);
+                sb.AppendLine($"Cliloc-Revert: Eintraege={cd.Numbers.Length}, Dirty={cd.Dirty.Count}");
+            }
+        }
+
+        foreach (var (shot, make) in new (string, Func<Control>)[]
+                 {
+                     ("radar", () => new RadarEditor(ctx, 0x4000 + 0x0F43)),
+                     ("hue", () => new HueEditor(ctx, 5)),
+                     ("skill", () => new SkillEditor(ctx, 0)),
+                     ("cliloc", () => new ClilocEditor(ctx.Cliloc(clSrc ?? ""), ctx.Cliloc(clSrc ?? "").Numbers.FirstOrDefault())),
+                 })
+        {
+            if (shot == "cliloc" && clSrc == null)
+            {
+                continue;
+            }
+            var shotForm = new Form { Width = 520, Height = 520 };
+            shotForm.Controls.Add(make());
+            shotForm.Show();
+            Application.DoEvents();
+            Application.DoEvents();
+            using var shotBmp = new Bitmap(shotForm.Width, shotForm.Height);
+            shotForm.DrawToBitmap(shotBmp, new Rectangle(0, 0, shotBmp.Width, shotBmp.Height));
+            shotBmp.Save(Path.Combine(outDir, $"editor_{shot}.png"), ImageFormat.Png);
+            shotForm.Close();
+        }
+
         var helpForm = new HelpForm { Width = 1000, Height = 700, StartPosition = FormStartPosition.Manual };
         helpForm.Show();
         helpForm.Open("tiledata-edit");

@@ -520,6 +520,14 @@ public sealed class BrowserControl : UserControl
                     _lv.Invalidate();
                     _grid?.Invalidate();
                     _summary.Text = " " + _p.Summary;
+                    if (_p is RadarProvider or HuesProvider)
+                    {
+                        _grid?.ClearCache();
+                        if (ec is StoreEditor se && se.RefreshPreview)
+                        {
+                            BeginInvoke(() => ShowEntry(i, false));
+                        }
+                    }
                     if (_p is ArtProvider or LandProvider or GumpProvider)
                     {
                         _grid?.ClearCache();

@@ -75,8 +75,22 @@ public static class HelpContent
                 T("gump", "Gumps",
                     "<p>Alle Gumps aus gumpart.mul bis zur höchsten ID.</p>" +
                     H("Bedeutung", "Ab 50000 sind es männliche, ab 60000 weibliche Paperdoll-Gumps; die AnimID ist die ID minus 50000 bzw. 60000.")),
-                T("radar", "Radarcolor", "<p>Radarfarbe je Land- und Item-Grafik (radarcol.mul), ein 16-Bit-Wert pro Art-Index."),
-                T("hues", "Hues", "<p>Alle Farben aus hues.mul mit je 32 Farbwerten. Das Raster zeigt die Farbverläufe."),
+                T("radar", "Radarcolor",
+                    "<p>Radarfarbe je Land- und Item-Grafik (radarcol.mul), ein 16-Bit-Wert pro Art-Index. Rechts neben der Liste steht ein Formular zum gewählten Eintrag.</p>" +
+                    H("Farbe", "Der Wert als 15-Bit-Hexzahl (Rot, Grün und Blau je 5 Bit). Das Farbfeld daneben zeigt das Ergebnis; 'Farbe wählen' öffnet den Farbdialog.") +
+                    H("Aus der Grafik berechnen", "Setzt den Mittelwert aller nicht transparenten Pixel der Grafik.") +
+                    H("Fehlende Item-Farben füllen", "Berechnet die Farbe für alle Items, die eine Grafik, aber die Radarfarbe 0 haben, und merkt sie als Änderung vor.") +
+                    H("Speichern", "Schreibt alle geänderten Einträge dieser Datei. Zuvor wird die vorherige Datei unter %APPDATA%\\UOTinker\\backups gesichert. Die Zahl in Klammern ist die Menge der geänderten Einträge. Bei aktivem Schreibschutz ist der Knopf gesperrt.") +
+                    H("Eintrag zurücksetzen / Alle verwerfen", "Stellt den Eintrag oder alle ungespeicherten Änderungen auf den Stand der Datei zurück.")),
+                T("hues", "Hues",
+                    "<p>Alle Farben aus hues.mul mit je 32 Farbwerten. Das Raster zeigt die Farbverläufe. Rechts neben der Liste steht ein Formular zum gewählten Hue.</p>" +
+                    H("Name", "Höchstens 19 Zeichen, Latin-1.") +
+                    H("Tabelle von / bis", "Die beiden Tabellenwerte des Eintrags, bleiben meist unverändert.") +
+                    H("Farbfelder", "Ein Klick auf eines der 32 Felder öffnet den Farbdialog. Die Farben werden auf 15 Bit reduziert.") +
+                    H("Verlauf", "Verteilt die Farben dazwischen gleichmäßig zwischen Farbe 1 und Farbe 32.") +
+                    H("Farben von Hue kopieren", "Übernimmt alle 32 Farben eines anderen Hues, Name und Tabellenwerte bleiben.") +
+                    H("Speichern", "Schreibt alle geänderten Einträge dieser Datei. Zuvor wird die vorherige Datei unter %APPDATA%\\UOTinker\\backups gesichert. Die Zahl in Klammern ist die Menge der geänderten Einträge. Bei aktivem Schreibschutz ist der Knopf gesperrt.") +
+                    H("Eintrag zurücksetzen / Alle verwerfen", "Stellt den Eintrag oder alle ungespeicherten Änderungen auf den Stand der Datei zurück.")),
                 T("monster", "Bodies / Monster",
                     "<p>Alle Bodies mit ihren Quellen: anim.mul bis anim6.mul, bodyconv.def, body.def und UOP.</p>" +
                     H("Quellen", "Mul (A1 bis A6) oder UOP. Eine Zeile kann mehrere Quellen haben.") +
@@ -90,8 +104,18 @@ public static class HelpContent
                     H("Skript öffnen", "Öffnet die Datei an der Zeile der Definition (VS Code, sonst Notepad++, sonst Standardprogramm).") +
                     H("Im Tiledata zeigen / Bei Items (Art) zeigen", "Wechselt auf die jeweilige Seite und springt zum Eintrag dieser Item-ID. Filter und Suche der Zielseite werden dafür zurückgesetzt.") +
                     Note("Die Skripte werden nur gelesen, UOTinker ändert sie nie. Die Liste entsteht beim Laden; nach Änderungen an den Skripten mit 'Neu laden' aktualisieren. Der Sprung Item -> ITEMDEF sitzt im Tiledata-Editor ('ITEMDEF ...' und 'in der ITEMDEF-Liste zeigen').")),
-                T("skills", "Skills", "<p>Skills aus skills.idx/skills.mul mit Name und Aktiv-Kennzeichen."),
-                T("cliloc", "Cliloc", "<p>Alle Texte der Cliloc-Dateien je Sprache (komprimierte Dateien werden entpackt). Suche nach Nummer oder Text.")),
+                T("skills", "Skills",
+                    "<p>Skills aus skills.idx/skills.mul mit Name und Aktiv-Kennzeichen.</p>" +
+                    H("Skill vorhanden", "Belegt einen freien Slot oder gibt einen Slot wieder frei.") +
+                    H("Skill-Button", "Ob der Skill im Skillfenster einen Knopf hat.") +
+                    H("Speichern", "Schreibt skills.mul und skills.idx neu (Reihenfolge der Daten in der mul-Datei ändert sich, die Zuordnung nicht). Zuvor werden beide Dateien unter %APPDATA%\\UOTinker\\backups gesichert.")),
+                T("cliloc", "Cliloc",
+                    "<p>Alle Texte der Cliloc-Dateien je Sprache (komprimierte Dateien werden entpackt). Suche nach Nummer oder Text.</p>" +
+                    H("Text bearbeiten", "Das Feld rechts ändert den Text des gewählten Eintrags. Zeilenumbrüche gibt es in Cliloc-Texten nicht, sie werden zu Leerzeichen.") +
+                    H("Neuer Eintrag", "Legt eine neue Nummer mit Text an (am Dateiende).") +
+                    H("Speichern", "Schreibt alle geänderten Einträge dieser Datei. Zuvor wird die vorherige Datei unter %APPDATA%\\UOTinker\\backups gesichert. Die Zahl in Klammern ist die Menge der geänderten Einträge. Bei aktivem Schreibschutz ist der Knopf gesperrt.") +
+                    H("Eintrag zurücksetzen / Alle verwerfen", "Stellt den Eintrag oder alle ungespeicherten Änderungen auf den Stand der Datei zurück.") +
+                    Note("Komprimierte (BWT) Dateien lassen sich anzeigen, aber nicht schreiben."))),
 
             T("tiledata", "Tiledata",
                 "<p>Die Tiledata (tiledata.mul) legt für jedes Land- und Item-Tile fest, was es im Spiel ist: Name, Flags, Gewicht, Höhe, Layer, Menge, AnimID, Hue und Licht. Das Item-Bild steht in art.mul, seine Eigenschaften hier. Der Client liest die Datei, Server-Emulatoren meist ebenfalls.</p>" +

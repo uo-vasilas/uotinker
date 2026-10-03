@@ -1187,8 +1187,11 @@ public sealed class TileData
     }
 }
 
-public sealed class HueData
+public sealed partial class HueData
 {
+    private readonly byte[] _raw = Array.Empty<byte>();
+    private readonly string _path;
+
     public int Count { get; }
     public ushort[][] Colors { get; }
     public ushort[] TableStart { get; }
@@ -1198,6 +1201,7 @@ public sealed class HueData
     public HueData(string folder)
     {
         string path = Path.Combine(folder, "hues.mul");
+        _path = path;
         if (!File.Exists(path))
         {
             Colors = Array.Empty<ushort[]>();
@@ -1207,6 +1211,7 @@ public sealed class HueData
             return;
         }
         var b = File.ReadAllBytes(path);
+        _raw = b;
         int groups = b.Length / (4 + 8 * 88);
         Count = groups * 8;
         Colors = new ushort[Count][];
@@ -1241,8 +1246,11 @@ public sealed class HueData
     }
 }
 
-public sealed class SkillData
+public sealed partial class SkillData
 {
+    private readonly IdxTable _idx;
+    private readonly string _folder;
+
     public int Count { get; }
     public bool[] Valid { get; }
     public bool[] Button { get; }
@@ -1251,6 +1259,8 @@ public sealed class SkillData
     public SkillData(string folder)
     {
         var idx = new IdxTable(Path.Combine(folder, "skills.idx"));
+        _idx = idx;
+        _folder = folder;
         string mulPath = Path.Combine(folder, "skills.mul");
         Count = idx.Count;
         Valid = new bool[Count];
@@ -1282,12 +1292,15 @@ public sealed class SkillData
     }
 }
 
-public sealed class ClilocData
+public sealed partial class ClilocData
 {
+    private byte[] _header = new byte[6];
+    private byte[] _flags = Array.Empty<byte>();
+
     public string Path { get; }
     public string Error { get; } = "";
-    public int[] Numbers { get; } = Array.Empty<int>();
-    public string[] Texts { get; } = Array.Empty<string>();
+    public int[] Numbers { get; private set; } = Array.Empty<int>();
+    public string[] Texts { get; private set; } = Array.Empty<string>();
     public bool Compressed { get; }
 
     public ClilocData(string path)
@@ -1304,6 +1317,8 @@ public sealed class ClilocData
 
             var nums = new List<int>();
             var txt = new List<string>();
+            var flg = new List<byte>();
+            _header = buf.Take(6).ToArray();
             int p = 6;
             while (p + 7 <= buf.Length)
             {
@@ -1315,11 +1330,13 @@ public sealed class ClilocData
                     break;
                 }
                 nums.Add(num);
+                flg.Add(buf[p - 3]);
                 txt.Add(Encoding.UTF8.GetString(buf, p, len));
                 p += len;
             }
             Numbers = nums.ToArray();
             Texts = txt.ToArray();
+            _flags = flg.ToArray();
         }
         catch (Exception ex)
         {

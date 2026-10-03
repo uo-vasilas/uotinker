@@ -317,12 +317,12 @@ public sealed class MainForm : Form
         {
             return true;
         }
-        int n = (_ctx?.Tile.Dirty.Count ?? 0) + (_ctx?.Art.ArtPendingCount ?? 0) + (_ctx?.Art.PendingGump.Count ?? 0);
+        int n = (_ctx?.Tile.Dirty.Count ?? 0) + (_ctx?.Art.ArtPendingCount ?? 0) + (_ctx?.Art.PendingGump.Count ?? 0) + (_ctx?.PendingOther ?? 0);
         if (n == 0)
         {
             return true;
         }
-        return MessageBox.Show(this, $"{n} ungespeicherte Änderung(en) an Tiledata oder Art gehen verloren. Trotzdem fortfahren?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
+        return MessageBox.Show(this, $"{n} ungespeicherte Änderung(en) gehen verloren. Trotzdem fortfahren?", "UO Tinker", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes;
     }
 
     private void ChooseFolder(bool data)
@@ -445,7 +445,7 @@ public sealed class MainForm : Form
             foreach (var f in Directory.GetFiles(ctx.Folder, "cliloc.*").Where(x => !x.Contains(".bak", StringComparison.OrdinalIgnoreCase)).OrderBy(x => x))
             {
                 string path = f;
-                h.Add(Path.GetFileName(f), () => Browser("cliloc", new ClilocProvider(path)));
+                h.Add(Path.GetFileName(f), () => Browser("cliloc", new ClilocProvider(ctx.Cliloc(path))));
             }
             h.Select(0);
             return h;
