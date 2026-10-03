@@ -59,7 +59,8 @@ folder these parts stay empty.
 
 A Windows installer (self-contained, no .NET installation needed, per-user, English/German) is built with [NSIS](https://nsis.sourceforge.io):
 
-```n.\tools\Release-UOTinker.ps1 -Makensis <path to makensis.exe>
+```
+.\tools\Release-UOTinker.ps1 -Makensis <path to makensis.exe>
 ```
 
 The result is `Setup\UOTinker_Setup_<version>.exe`.
@@ -98,6 +99,25 @@ copies. It never changes your real files.
 | `src/Help.cs` | Built-in help |
 | `src/SelfTest.cs` | Self test |
 
+### Code signing policy
+
+Free code signing provided by [SignPath.io](https://signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+
+- Only binaries built from this repository by the GitHub Actions workflow are signed, and only releases that are approved by the project owner.
+- UOTinker is the only project signed with this certificate. The signed files carry the product name `UOTinker` and the release version.
+- Team roles: **Author, Reviewer and Approver:** [uo-vasilas](https://github.com/uo-vasilas) (project owner, two-factor authentication enabled). External contributions are reviewed before they are merged.
+- The source code is public under GPL v3 or later; every signed release can be rebuilt from the tagged source.
+- To report a problem with a signed file, open an [issue](https://github.com/uo-vasilas/uotinker/issues) or write to vasilas@schattenwelt.rip.
+
+### Privacy policy
+
+UOTinker works on your own files and does not collect, store or transmit personal data, with these two exceptions:
+
+- **Update check (can be switched off in the settings menu):** on start the program requests `https://api.github.com/repos/uo-vasilas/uotinker/releases/latest`. GitHub receives the request together with your IP address and the user agent `UOTinker/<version>`, as with any web request; see the [GitHub privacy statement](https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement). UOTinker itself stores nothing about it. If you accept an update, the installer is downloaded from GitHub and its SHA-256 checksum is verified before it is started.
+- **Links** (for example to Ko-fi) are only opened in your browser when you click them.
+
+Your settings and backups stay on your computer in `%APPDATA%\UOTinker`. Your client files are never sent anywhere. The installer only places files in your user profile and includes an uninstaller.
+
 ### License
 
 UOTinker is free software under the **GNU General Public License, version 3 or (at your option) any later version** (see `LICENSE`). `src/BwtDecompress.cs` comes from ClassicUO (BSD 2-Clause); see `THIRD-PARTY-NOTICES.md`.
@@ -127,6 +147,14 @@ bin\Release\net8.0-windows\UOTinker.exe
 
 Beim ersten Start fragt das Programm nach dem Datenordner. Die Hilfe öffnest du mit F1. Arbeite zuerst an einer
 Kopie deines Client-Ordners und schließe den Spielclient vor dem Speichern.
+
+### Code-Signing-Richtlinie
+
+Kostenlose Code-Signierung durch [SignPath.io](https://signpath.io), Zertifikat von der [SignPath Foundation](https://signpath.org). Signiert werden nur Programmdateien, die der GitHub-Actions-Workflow aus diesem Repository gebaut hat und die der Projektinhaber freigegeben hat. Autor, Reviewer und Freigeber ist [uo-vasilas](https://github.com/uo-vasilas) (Zwei-Faktor-Anmeldung aktiv).
+
+### Datenschutz
+
+UOTinker erhebt, speichert und sendet keine personenbezogenen Daten. Einzige Ausnahme ist die Update-Prüfung beim Start (im Zahnrad-Menü abschaltbar): Dabei wird die GitHub-API abgefragt, GitHub sieht wie bei jeder Webanfrage deine IP-Adresse. Einstellungen und Backups liegen lokal in `%APPDATA%\UOTinker`, deine Client-Dateien werden nie übertragen.
 
 ### Lizenz
 
