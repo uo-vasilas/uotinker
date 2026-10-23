@@ -1,0 +1,42 @@
+version: 2
+
+# Woechentliche Paket-Updates: Minor- und Patch-Versionen kommen gebuendelt als ein Pull Request
+# je Paketsystem. Major-Versionen oeffnen keinen PR, sie stehen im woechentlichen Sammel-Issue
+# "Update-Uebersicht" und werden bewusst von Hand angegangen.
+
+updates:
+
+  - package-ecosystem: nuget
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels: [dependencies, dotnet]
+    commit-message:
+      prefix: "Deps"
+    groups:
+      nuget-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+      time: "06:00"
+      timezone: Europe/Berlin
+    open-pull-requests-limit: 5
+    labels: [dependencies, github-actions]
+    commit-message:
+      prefix: "Deps"
+    groups:
+      github-actions-minor-patch:
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
