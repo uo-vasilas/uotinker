@@ -1,4 +1,5 @@
-﻿using System.Drawing;
+﻿using System.ComponentModel;
+using System.Drawing;
 using System.Drawing.Drawing2D;
 
 namespace UOTinker;
@@ -20,11 +21,15 @@ public sealed class ThumbGrid : Control
     private int _cell = 96;
     private int _selected = -1;
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<int, Bitmap?> Loader { get; set; } = _ => null;
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<int, bool> IsFree { get; set; } = _ => false;
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public Func<int, string> LabelOf { get; set; } = i => i.ToString();
     public event Action<int>? Selected;
 
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public int Cell
     {
         get => _cell;

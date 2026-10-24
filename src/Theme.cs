@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Drawing;
 using System.Runtime.InteropServices;
 
@@ -151,7 +152,9 @@ public static class Theme
 public sealed class NavButton : Control
 {
     private bool _hover;
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public string Glyph { get; set; } = "";
+    [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
     public bool IsActive { get; set; }
 
     public NavButton()

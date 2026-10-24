@@ -69,7 +69,7 @@ The result is `Setup\UOTinker_Setup_<version>.exe`.
 
 ```
 dotnet build -c Release
-bin\Release\net8.0-windows\UOTinker.exe
+bin\Release\net10.0-windows\UOTinker.exe
 ```
 
 On the first start the program asks for the data folder. Later, the gear icon at the bottom left switches the data
@@ -142,7 +142,7 @@ und Content-Ersteller. Du gibst einen beliebigen Ordner mit den Client-Dateien a
 
 ```
 dotnet build -c Release
-bin\Release\net8.0-windows\UOTinker.exe
+bin\Release\net10.0-windows\UOTinker.exe
 ```
 
 Beim ersten Start fragt das Programm nach dem Datenordner. Die Hilfe öffnest du mit F1. Arbeite zuerst an einer
